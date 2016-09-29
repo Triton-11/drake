@@ -15,6 +15,7 @@ drake_setup_git_hooks()
 ###############################################################################
 # BEGIN options
 
+# robinsch changed here ### xD »»» ###
 ##########################################
 # External Projects that are ON by default
 ##########################################
