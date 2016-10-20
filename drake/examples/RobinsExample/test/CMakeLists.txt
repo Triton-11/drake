@@ -1,2 +1,3 @@
 drake_add_cc_test(helloworld_test)
 target_link_libraries(helloworld_test LibraryRobin)
+target_link_libraries(helloworld_test HelloTemplate)
