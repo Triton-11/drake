@@ -64,7 +64,7 @@ drake_cc_binary(
     data = [":models"],
     test_rule_args = [
         "-simulation_trials=2",
-        "-simulation_real_time_rate=0.0",
+        "-simulation_real_time_rate=1.0",
     ],
     deps = [
         ":quadrotor_plant",
@@ -78,6 +78,7 @@ drake_cc_binary(
         "//drake/multibody/rigid_body_plant:drake_visualizer",
         "//drake/systems/analysis:simulator",
         "//drake/systems/framework:diagram",
+        "//drake/systems/primitives:constant_vector_source",
         "@gflags//:gflags",
     ],
 )

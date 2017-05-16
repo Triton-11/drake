@@ -34,13 +34,19 @@ int DoMain() {
 
   quad_world->StoreModel(
       "quad",
-      "/examples/Quadrotor/quadrotor.urdf");
-
+      "/examples/quadrotor_with_link/quadrotor.urdf");
+  /*
+  quad_world->StoreModel(
+      "iiwa",
+      "/manipulation/models/iiwa_description/urdf/"
+          "iiwa14_primitive_collision.urdf");
+  */
   quad_world->AddGround();
 
-  const Eigen::Vector3d kRobotBase(0, 0, 1);
+  const Eigen::Vector3d kRobotFloat(0, 0, 1);
 
-  quad_world->AddFixedModelInstance("quad", kRobotBase);
+  //quad_world->AddFixedModelInstance("iiwa", kRobotBase);
+  quad_world->AddFloatingModelInstance("quad", kRobotFloat);
 
   lcm::DrakeLcm lcm;
 

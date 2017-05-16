@@ -12,15 +12,11 @@
 #include "drake/multibody/rigid_body_plant/rigid_body_plant.h"
 #include "drake/multibody/rigid_body_tree.h"
 #include "drake/systems/analysis/simulator.h"
-#include "drake/systems/framework/context.h"
 #include "drake/systems/framework/diagram.h"
 #include "drake/systems/framework/diagram_builder.h"
 #include "drake/systems/framework/system.h"
 #include "drake/systems/framework/system_port_descriptor.h"
 #include "drake/systems/primitives/constant_vector_source.h"
-#include "drake/systems/primitives/demultiplexer.h"
-#include "drake/systems/primitives/multiplexer.h"
-#include "drake/systems/primitives/trajectory_source.h"
 
 using std::allocate_shared;
 using Eigen::MatrixXd;
@@ -30,16 +26,12 @@ namespace drake {
 
 using lcm::DrakeLcmInterface;
 using systems::ConstantVectorSource;
-using systems::Context;
 using systems::Diagram;
 using systems::DiagramBuilder;
 using systems::DrakeVisualizer;
 using systems::InputPortDescriptor;
-using systems::Multiplexer;
 using systems::RigidBodyPlant;
-using systems::Simulator;
 using systems::System;
-using systems::TrajectorySource;
 
 namespace examples {
 namespace quadrotor_with_link {
@@ -69,10 +61,12 @@ PlantAndVisualizerDiagram<T>::PlantAndVisualizerDiagram(
 
   // Exports all of the RigidBodyPlant's input and output ports.
   for (int i = 0; i < rigid_body_plant_->get_num_input_ports(); ++i) {
+    std::cout << "exporting input port" << i << std::endl;
     builder.ExportInput(rigid_body_plant_->get_input_port(i));
   }
 
   for (int i = 0; i < rigid_body_plant_->get_num_output_ports(); ++i) {
+    std::cout << "exporting output port" << i << std::endl;
     builder.ExportOutput(rigid_body_plant_->get_output_port(i));
   }
 

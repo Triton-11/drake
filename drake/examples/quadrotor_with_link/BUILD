@@ -8,6 +8,17 @@ load(
     "drake_cc_binary",
 )
 
+filegroup(
+    name = "models",
+    srcs = glob([
+        "**/*.obj",
+        "**/*.sdf",
+        "**/*.urdf",
+        "**/*.xml",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
 drake_cc_library(
     name = "world_sim_diagram_factory_quad",
     srcs = [
@@ -41,6 +52,26 @@ drake_cc_binary(
     add_test_rule = 1,
     data = [
         "//drake/examples/Quadrotor:models",
+        "//drake/examples/quadrotor_with_link:models",
+        "//drake/manipulation/models/iiwa_description:models",
+    ],
+    test_rule_args = ["--simulation_sec=0.1"],
+    deps = [
+        "@gflags//:gflags",
+        ":world_sim_diagram_factory_quad",
+        ":world_sim_tree_builder_quad",
+        "//drake/common",
+    ],
+)
+
+drake_cc_binary(
+    name = "simple_quadrotor_demo",
+    srcs = ["simple_quadrotor_demo.cc"],
+    add_test_rule = 1,
+    data = [
+        "//drake/examples/Quadrotor:models",
+        "//drake/examples/quadrotor_with_link:models",
+        "//drake/manipulation/models/iiwa_description:models",
     ],
     test_rule_args = ["--simulation_sec=0.1"],
     deps = [
