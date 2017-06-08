@@ -82,6 +82,34 @@ drake_cc_binary(
     ],
 )
 
+drake_cc_binary(
+    name = "run_quadrotor_autodiff",
+    srcs = ["run_quadrotor_autodiff.cc"],
+    add_test_rule = 1,
+    data = [":models"],
+    test_rule_args = [
+        "-simulation_trials=2",
+        "-simulation_real_time_rate=0.0",
+    ],
+    deps = [
+        ":quadrotor_plant",
+        "//drake/common:drake_path",
+        "//drake/common:is_approx_equal_abstol",
+        "//drake/lcm",
+        "//drake/multibody:rigid_body_tree",
+        "//drake/multibody:rigid_body_tree_auto_diff",
+        "//drake/multibody:rigid_body_tree_construction",
+        "//drake/multibody/joints",
+        "//drake/multibody/parsers",
+        "//drake/multibody/rigid_body_plant",
+        "//drake/multibody/rigid_body_plant:drake_visualizer",
+        "//drake/multibody/rigid_body_plant:rigid_body_plant_autodiff",
+        "//drake/systems/analysis:simulator",
+        "//drake/systems/framework:diagram",
+        "@gflags",
+    ],
+)
+
 drake_cc_googletest(
     name = "quadrotor_dynamics_test",
     data = [":models"],
