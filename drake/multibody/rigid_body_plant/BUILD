@@ -96,6 +96,19 @@ drake_cc_library(
 )
 
 drake_cc_library(
+    name = "rigid_body_plant_autodiff",
+    srcs = [
+        "rigid_body_plant_autodiff.cc",
+    ],
+    hdrs = [
+        "rigid_body_plant_autodiff.h",
+    ],
+    deps = [
+        ":rigid_body_plant",
+    ],
+)
+
+drake_cc_library(
     name = "drake_visualizer",
     srcs = [
         "drake_visualizer.cc",
