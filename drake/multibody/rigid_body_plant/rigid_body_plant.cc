@@ -420,8 +420,8 @@ void RigidBodyPlant<T>::CalcKinematicsResultsOutput(
 template <typename T>
 void RigidBodyPlant<T>::DoCalcTimeDerivatives(
     const Context<T>& context, ContinuousState<T>* derivatives) const {
-  static_assert(std::is_same<double, T>::value,
-                "Only support templating on double for now");
+  //static_assert(std::is_same<double, T>::value,
+  //              "Only support templating on double for now");
   if (timestep_ > 0.0) return;
 
   VectorX<T> u = EvaluateActuatorInputs(context);
@@ -527,8 +527,8 @@ void RigidBodyPlant<T>::DoCalcDiscreteVariableUpdates(
     const drake::systems::Context<T>& context,
     const std::vector<const drake::systems::DiscreteUpdateEvent<double>*>&,
     drake::systems::DiscreteValues<T>* updates) const {
-  static_assert(std::is_same<double, T>::value,
-                "Only support templating on double for now");
+  //static_assert(std::is_same<double, T>::value,
+  //              "Only support templating on double for now");
   if (timestep_ == 0.0) return;
 
   VectorX<T> u = EvaluateActuatorInputs(context);
@@ -746,6 +746,7 @@ VectorX<T> RigidBodyPlant<T>::EvaluateActuatorInputs(
 
 // Explicitly instantiates on the most common scalar types.
 template class RigidBodyPlant<double>;
+template class RigidBodyPlant<AutoDiffXd>;
 
 }  // namespace systems
 }  // namespace drake

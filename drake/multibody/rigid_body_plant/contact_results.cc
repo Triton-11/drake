@@ -1,6 +1,7 @@
 #include "drake/multibody/rigid_body_plant/contact_results.h"
 
 #include "drake/common/drake_assert.h"
+#include "drake/common/eigen_autodiff_types.h"
 
 namespace drake {
 namespace systems {
@@ -34,6 +35,7 @@ ContactInfo<T>& ContactResults<T>::AddContact(
 
 // Explicitly instantiates on the most common scalar types.
 template class ContactResults<double>;
+template class ContactResults<AutoDiffXd>;
 
 }  // namespace systems
 }  // namespace drake

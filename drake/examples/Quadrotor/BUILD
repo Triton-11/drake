@@ -97,7 +97,6 @@ drake_cc_binary(
         "//drake/common:is_approx_equal_abstol",
         "//drake/lcm",
         "//drake/multibody:rigid_body_tree",
-        "//drake/multibody:rigid_body_tree_auto_diff",
         "//drake/multibody:rigid_body_tree_construction",
         "//drake/multibody/joints",
         "//drake/multibody/parsers",
@@ -106,7 +105,7 @@ drake_cc_binary(
         "//drake/multibody/rigid_body_plant:rigid_body_plant_autodiff",
         "//drake/systems/analysis:simulator",
         "//drake/systems/framework:diagram",
-        "@gflags",
+        "@com_github_gflags_gflags//:gflags",
     ],
 )
 
