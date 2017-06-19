@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "drake/common/drake_assert.h"
+#include "drake/common/eigen_autodiff_types.h"
 
 namespace drake {
 namespace systems {
@@ -42,6 +43,7 @@ ContactForce<T>::ContactForce(const Vector3<T>& application_point,
 }
 
 template class ContactForce<double>;
+template class ContactForce<AutoDiffXd>;
 
 }  // namespace systems
 }  // namespace drake

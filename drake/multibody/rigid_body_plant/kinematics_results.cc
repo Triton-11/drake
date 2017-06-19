@@ -1,6 +1,7 @@
 #include "drake/multibody/rigid_body_plant/kinematics_results.h"
 
 #include "drake/common/eigen_types.h"
+#include "drake/common/eigen_autodiff_types.h"
 #include "drake/multibody/kinematics_cache.h"
 #include "drake/util/drakeGeometryUtil.h"
 
@@ -114,6 +115,7 @@ Eigen::VectorBlock<const VectorX<T>> KinematicsResults<T>::get_joint_velocity(
 
 // Explicitly instantiates on the most common scalar types.
 template class KinematicsResults<double>;
+template class KinematicsResults<AutoDiffXd>;
 
 }  // namespace systems
 }  // namespace drake

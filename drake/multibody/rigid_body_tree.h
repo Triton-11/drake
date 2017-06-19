@@ -15,6 +15,7 @@
 #include "drake/common/drake_deprecated.h"
 #include "drake/common/eigen_stl_types.h"
 #include "drake/common/eigen_types.h"
+#include "drake/common/eigen_autodiff_types.h"
 #include "drake/math/rotation_matrix.h"
 #include "drake/multibody/collision/collision_filter.h"
 #include "drake/multibody/collision/drake_collision.h"
@@ -178,7 +179,8 @@ class RigidBodyTree {
 
   Eigen::VectorXd getZeroConfiguration() const;
 
-  Eigen::VectorXd getRandomConfiguration(
+  //Eigen::VectorXd getRandomConfiguration(
+  drake::VectorX<T> getRandomConfiguration(
       // TODO(#2274) Fix NOLINTNEXTLINE(runtime/references).
       std::default_random_engine& generator) const;
 
@@ -692,6 +694,9 @@ class RigidBodyTree {
   /// inverseDynamics and dynamicsBiasTerm.
   using BodyToWrenchMap = drake::eigen_aligned_std_unordered_map<
     RigidBody<double> const*, drake::WrenchVector<T>>;
+  // TODO(robinsch): Rename BodyToWrenchMap2 to something better
+  using BodyToWrenchMap2 = drake::eigen_aligned_std_unordered_map<
+    RigidBody<drake::AutoDiffXd> const*, drake::WrenchVector<T>>;
 
   /** \brief Compute the term \f$ C(q, v, f_\text{ext}) \f$ in the manipulator
   *equations

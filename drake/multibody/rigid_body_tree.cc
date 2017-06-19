@@ -568,10 +568,13 @@ Eigen::VectorXd RigidBodyTree<T>::getZeroConfiguration() const {
 }
 
 template <typename T>
-Eigen::VectorXd RigidBodyTree<T>::getRandomConfiguration(
+//Eigen::VectorXd RigidBodyTree<T>::getRandomConfiguration(
+VectorX<T> RigidBodyTree<T>::getRandomConfiguration(
+    // TODO(robinsch): Maybe also change getZeroConfiguration.
     // TODO(#2274) Fix NOLINTNEXTLINE(runtime/references).
     std::default_random_engine& generator) const {
-  Eigen::VectorXd q(num_positions_);
+  //Eigen::VectorXd q(num_positions_);
+  VectorX<T> q(num_positions_);
   for (const auto& body_ptr : bodies) {
     if (body_ptr->has_parent_body()) {
       const DrakeJoint& joint = body_ptr->getJoint();
@@ -3246,6 +3249,9 @@ RigidBodyTree<double>::massMatrix<AutoDiffUpTo73d>(
 template MatrixX<AutoDiffXd>
 RigidBodyTree<double>::massMatrix<AutoDiffXd>(
     KinematicsCache<AutoDiffXd>&) const;
+template MatrixX<AutoDiffXd>
+RigidBodyTree<AutoDiffXd>::massMatrix<AutoDiffXd>(
+    KinematicsCache<AutoDiffXd>&) const;
 template MatrixXd
 RigidBodyTree<double>::massMatrix<double>(KinematicsCache<double>&) const;
 
@@ -3304,6 +3310,16 @@ RigidBodyTree<double>::dynamicsBiasTerm<AutoDiffXd>(
         equal_to<RigidBody<double> const*>,
         Eigen::aligned_allocator<
         pair<RigidBody<double> const* const, WrenchVector<AutoDiffXd>>>> const&,
+    bool) const;
+template VectorX<AutoDiffXd>
+RigidBodyTree<AutoDiffXd>::dynamicsBiasTerm<AutoDiffXd>(
+    KinematicsCache<AutoDiffXd>&,
+    unordered_map<
+        RigidBody<AutoDiffXd> const*, WrenchVector<AutoDiffXd>,
+        hash<RigidBody<AutoDiffXd> const*>,
+        equal_to<RigidBody<AutoDiffXd> const*>,
+        Eigen::aligned_allocator<
+        pair<RigidBody<AutoDiffXd> const* const, WrenchVector<AutoDiffXd>>>> const&,
     bool) const;
 template VectorXd RigidBodyTree<double>::dynamicsBiasTerm<double>(
     KinematicsCache<double>&,
@@ -3695,6 +3711,9 @@ RigidBodyTree<double>::doKinematics(
 template KinematicsCache<AutoDiffXd>
 RigidBodyTree<double>::doKinematics(
     Eigen::MatrixBase<VectorX<AutoDiffXd>> const&) const;
+template KinematicsCache<AutoDiffXd>
+RigidBodyTree<AutoDiffXd>::doKinematics(
+    Eigen::MatrixBase<VectorX<AutoDiffXd>> const&) const;
 template KinematicsCache<double>
 RigidBodyTree<double>::doKinematics(
     Eigen::MatrixBase<Eigen::Block<VectorXd, -1, 1, false>> const&) const;
@@ -3715,6 +3734,10 @@ RigidBodyTree<double>::doKinematics(
     Eigen::MatrixBase<Eigen::Block<VectorXd, -1, 1, false>> const&, bool) const;
 template KinematicsCache<AutoDiffXd>
 RigidBodyTree<double>::doKinematics(
+    Eigen::MatrixBase<VectorX<AutoDiffXd>> const&,
+    Eigen::MatrixBase<VectorX<AutoDiffXd>> const&, bool) const;
+template KinematicsCache<AutoDiffXd>
+RigidBodyTree<AutoDiffXd>::doKinematics(
     Eigen::MatrixBase<VectorX<AutoDiffXd>> const&,
     Eigen::MatrixBase<VectorX<AutoDiffXd>> const&, bool) const;
 template KinematicsCache<AutoDiffUpTo73d>
@@ -3745,3 +3768,4 @@ RigidBodyTree<double>::CreateKinematicsCacheWithType<AutoDiffUpTo73d>() const;
 
 // Explicitly instantiates on the most common scalar types.
 template class RigidBodyTree<double>;
+template class RigidBodyTree<AutoDiffXd>;
