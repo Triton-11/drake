@@ -453,7 +453,7 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
       prog.NewContinuousVariables(nv, "vdot");
 
   auto H = tree_->massMatrix(kinsol);
-  Eigen::MatrixXd H_and_neg_JT = H;
+  MatrixX<T> H_and_neg_JT = H;
 
   // There are no external wrenches, but it is a required argument in
   // dynamicsBiasTerm.

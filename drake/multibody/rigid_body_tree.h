@@ -693,10 +693,7 @@ class RigidBodyTree {
   /// Convenience alias for rigid body to external wrench map, for use with
   /// inverseDynamics and dynamicsBiasTerm.
   using BodyToWrenchMap = drake::eigen_aligned_std_unordered_map<
-    RigidBody<double> const*, drake::WrenchVector<T>>;
-  // TODO(robinsch): Rename BodyToWrenchMap2 to something better
-  using BodyToWrenchMap2 = drake::eigen_aligned_std_unordered_map<
-    RigidBody<drake::AutoDiffXd> const*, drake::WrenchVector<T>>;
+    RigidBody<T> const*, drake::WrenchVector<T>>;
 
   /** \brief Compute the term \f$ C(q, v, f_\text{ext}) \f$ in the manipulator
   *equations
