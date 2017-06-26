@@ -448,11 +448,14 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
   // TODO(amcastro-tri): preallocate the optimization problem and constraints,
   // and simply update them then solve on each function eval.
   // How to place something like this in the context?
+  /*
   drake::solvers::MathematicalProgram prog;
   drake::solvers::VectorXDecisionVariable vdot =
       prog.NewContinuousVariables(nv, "vdot");
+  */
 
   auto H = tree_->massMatrix(kinsol);
+  //MatrixX<T> H = tree_->massMatrix(kinsol);
   MatrixX<T> H_and_neg_JT = H;
 
   // There are no external wrenches, but it is a required argument in
@@ -465,6 +468,7 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
   // H*vdot -J^T*f = right_hand_side.
   VectorX<T> right_hand_side =
       -tree_->dynamicsBiasTerm(kinsol, no_external_wrenches);
+  // TODO(robinsch): Correctly compute input forces here
   if (num_actuators > 0) right_hand_side += tree_->B * u;
 
   // Applies joint limit forces.
@@ -484,9 +488,16 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
     }
   }
 
-  right_hand_side += compliant_contact_model_->ComputeContactForce(
-      *tree_.get(), kinsol);
+  // Contact force does not support autodiff (ComputeMaximumDepthCollisionPoints doesn't)
+  // https://github.com/RobotLocomotion/drake/issues/4267#issuecomment-264078942
+  /*
+  // Returns zero for now
+  right_hand_side += ComputeContactForce(kinsol);
+  */
 
+  // There are no position constraints (loops) in our RBT, so we can skip the
+  // tree_->getNumPositionConstraints()
+  /*
   solvers::VectorXDecisionVariable position_force{};
 
   if (tree_->getNumPositionConstraints()) {
@@ -509,16 +520,44 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
                                     H_and_neg_JT.cols() + J.rows());
     H_and_neg_JT.rightCols(J.rows()) = -J.transpose();
   }
+  */
 
+  /*
+  solvers::VectorXDecisionVariable position_force{};
   // Adds [H,-J^T] * [vdot;f] = -C.
   prog.AddLinearEqualityConstraint(H_and_neg_JT, right_hand_side,
                                    {vdot, position_force});
 
   prog.Solve();
+  */
+
+  // Solve the linear equation Hx=rhs for x
+  // H has to be a Hermitian, positive-definite matrix
+  Eigen::LLT<MatrixX<T>> lltOfH(H); // compute the Cholesky decomposition of A
+  // Check if H is a Hermitian, positive-definite matrix
+  if (lltOfH.info() != Eigen::Success) {
+    // TODO(robinsch): Add proper error message when lltOfH fails.
+    std::cout << "### FAIL ERROR of lltOfH" << std::endl;
+    std::cout << "The H Matrix is:" << std::endl << H << std::endl;
+  }
+
+  auto vdot_cholesky = lltOfH.solve(right_hand_side);
+
+  std::cout << vdot_cholesky.cols() << std::endl;
+  std::cout << vdot_cholesky.rows() << std::endl;
+
+  std::cout << "The H Matrix: " << std::endl << H << std::endl;
+  /*
+  std::cout << "To check H, let us compute L * L.transpose()" << std::endl;
+  MatrixX<T> L = lltOfH.matrixL(); // retrieve factor L  in the decomposition
+  std::cout << L * L.transpose() << std::endl;
+  std::cout << "vdot_cholesky" << std::endl << vdot_cholesky << std::endl;
+   */
+
 
   VectorX<T> xdot(get_num_states());
-  const auto& vdot_value = prog.GetSolution(vdot);
-  xdot << tree_->transformVelocityToQDot(kinsol, v), vdot_value;
+  //const auto& vdot_value = prog.GetSolution(vdot);
+  xdot << tree_->transformVelocityToQDot(kinsol, v), vdot_cholesky;
   derivatives->SetFromVector(xdot);
 }
 
