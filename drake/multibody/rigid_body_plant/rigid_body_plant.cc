@@ -499,6 +499,14 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
        0, L*kF, 0, -L*kF,
        -L*kF, 0, L*kF, 0,
        kM, -kM, kM, -kM;
+
+  tree_->B << 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0,
+              kF, kF, kF, kF,
+              0.0, L*kF, 0.0, -L*kF,
+              -L*kF, 0.0, L*kF, 0.0,
+              kM, -kM, kM, -kM;
+  */
   // TODO(robinsch): Correctly compute input forces here
   if (num_actuators > 0) right_hand_side += RR * tree_->B * u_;
   std::cout << "tree_->B" << std::endl << tree_->B << std::endl;
