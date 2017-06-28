@@ -37,13 +37,25 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
   /// The pointer must remain valid for the lifetime of this object.
 
   // Inheriting RBP contructor.
-  using RigidBodyPlant<T>::RigidBodyPlant;
-  //explicit RigidBodyPlantAutoDiff(std::unique_ptr<const RigidBodyTree<T>> tree,
-  //double timestep = 0.0);
+  //using RigidBodyPlant<T>::RigidBodyPlant;
+  explicit RigidBodyPlantAutodiff(std::unique_ptr<const RigidBodyTree<T>> tree,
+                                  double timestep = 0.0);
 
   ~RigidBodyPlantAutodiff() override;
 
+ protected:
+  // RigidBodyPlant<T> overrides.
+  void DoCalcTimeDerivatives(const Context<T>& context,
+                             ContinuousState<T>* derivatives) const override;
+
  private:
+  //std::unique_ptr<const RigidBodyTree<T>> tree_;
+  const RigidBodyTree<T>& tree_;
+
+  // timestep == 0.0 implies continuous-time dynamics,
+  // timestep > 0.0 implies a discrete-time dynamics approximation.
+  const double timestep_{0.0};
+
   // Publishes `xdot`, the derivative of `x`, which is this system's generalized
   // state vector. This vector contains the derivatives of the RigidBodyTree's
   // joint's positions and velocities. Thus, the units are velocities and
