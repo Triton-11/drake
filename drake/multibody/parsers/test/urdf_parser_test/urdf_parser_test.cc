@@ -100,22 +100,22 @@ GTEST_TEST(URDFParserTest, TestParseMaterial) {
   const string file_no_conflict_3 = root + "non_conflicting_materials_3.urdf";
 
   auto tree = make_unique<RigidBodyTree<double>>();
-  EXPECT_NO_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld(
+  EXPECT_NO_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld<double>(
       file_no_conflict_1, tree.get()));
 
   tree = make_unique<RigidBodyTree<double>>();
-  EXPECT_NO_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld(
+  EXPECT_NO_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld<double>(
       file_no_conflict_2, tree.get()));
 
   tree = make_unique<RigidBodyTree<double>>();
-  EXPECT_NO_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld(
+  EXPECT_NO_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld<double>(
       file_no_conflict_3, tree.get()));
 
   // This URDF defines the same color multiple times in different links.
   const string file_same_color_diff_links = root +
       "/duplicate_but_same_materials.urdf";
   tree = make_unique<RigidBodyTree<double>>();
-  EXPECT_NO_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld(
+  EXPECT_NO_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld<double>(
       file_same_color_diff_links, tree.get()));
 }
 
@@ -126,7 +126,7 @@ GTEST_TEST(URDFParserTest, TestDuplicateMaterials) {
   const string file_duplicate = root + "duplicate_materials.urdf";
 
   auto tree = make_unique<RigidBodyTree<double>>();
-  EXPECT_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld(
+  EXPECT_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld<double>(
       file_duplicate, tree.get()), std::runtime_error);
 }
 
@@ -136,7 +136,7 @@ GTEST_TEST(URDFParserTest, TestConflictingMaterials) {
   const string file_conflict = root + "conflicting_materials.urdf";
 
   auto tree = make_unique<RigidBodyTree<double>>();
-  EXPECT_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld(
+  EXPECT_THROW(AddModelInstanceFromUrdfFileWithRpyJointToWorld<double>(
       file_conflict, tree.get()), std::runtime_error);
 }
 
@@ -161,7 +161,7 @@ GTEST_TEST(URDFParserTest, TestAddWithQuaternionFloatingDof) {
   const string model_string = ReadTextFile(model_file);
 
   auto tree = make_unique<RigidBodyTree<double>>();
-  ASSERT_NO_THROW(AddModelInstanceFromUrdfString(
+  ASSERT_NO_THROW(AddModelInstanceFromUrdfString<double>(
       model_string, "." /* root_dir */, kQuaternion,
       nullptr /* weld_to_frame */, tree.get()));
 
@@ -175,7 +175,7 @@ GTEST_TEST(URDFParserTest, TestAddModelInstanceFromUrdfFile) {
       "/examples/Atlas/urdf/atlas_minimal_contact.urdf";
 
   auto tree = make_unique<RigidBodyTree<double>>();
-  ASSERT_NO_THROW(AddModelInstanceFromUrdfFile(
+  ASSERT_NO_THROW(AddModelInstanceFromUrdfFile<double>(
       model_file, kQuaternion, nullptr /* weld_to_frame */, tree.get()));
 
   EXPECT_EQ(tree->get_num_positions(), 37);
@@ -192,7 +192,7 @@ GTEST_TEST(URDFParserTest,
   package_map.Add("Atlas", GetDrakePath() + "/examples/Atlas");
 
   auto tree = make_unique<RigidBodyTree<double>>();
-  ASSERT_NO_THROW(AddModelInstanceFromUrdfFileSearchingInRosPackages(
+  ASSERT_NO_THROW(AddModelInstanceFromUrdfFileSearchingInRosPackages<double>(
       model_file, package_map, kQuaternion,
       nullptr /* weld_to_frame */, tree.get()));
 
@@ -209,7 +209,7 @@ GTEST_TEST(URDFParserTest, TestAddModelInstanceFromUrdfStringWeldToFrame) {
   const string kModelName = "non_conflicting_materials_1";
 
   auto tree = make_unique<RigidBodyTree<double>>();
-  const ModelInstanceIdTable table1 = AddModelInstanceFromUrdfString(
+  const ModelInstanceIdTable table1 = AddModelInstanceFromUrdfString<double>(
       model_string, "." /* root_dir */, kQuaternion,
       nullptr /* weld_to_frame */, tree.get());
   const int model_instance_id_1 = table1.at(kModelName);
@@ -221,7 +221,7 @@ GTEST_TEST(URDFParserTest, TestAddModelInstanceFromUrdfStringWeldToFrame) {
       kModelName, model_instance_id_1);
   auto F = std::make_shared<RigidBodyFrame<double>>("base_frame",
     base_body, X_BF);
-  const ModelInstanceIdTable table2 = AddModelInstanceFromUrdfString(
+  const ModelInstanceIdTable table2 = AddModelInstanceFromUrdfString<double>(
       model_string, "." /* root_dir */, kQuaternion, F /* weld_to_frame */,
       tree.get());
   const int model_instance_id_2 = table2.at(kModelName);
