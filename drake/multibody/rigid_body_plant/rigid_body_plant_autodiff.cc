@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 
 #include "drake/common/drake_assert.h"
+#include "drake/math/autodiff_gradient.h"
 #include "drake/math/roll_pitch_yaw.h"
 
 using Eigen::VectorXd;
@@ -206,6 +207,116 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   std::cout << "derivatives:" << std::endl;
   std::cout << derivatives->CopyToVector() << std::endl;
 }
+template <typename T>
+// TODO(robinsch): Fix/decide pass by reference/value for this function...
+void RigidBodyPlantAutodiff<T>::LinearizeAB(const Eigen::VectorXd& x0,
+    const Eigen::VectorXd& u0) {
+//  return;
+
+  //DRAKE_DEMAND(context.is_stateless() || context.has_only_continuous_state());
+  // TODO(russt): handle the discrete time case
+
+  // System and context are input, both templated on <double>.
+
+  // IDEA: inputs are current state vector (just VectorXd from external source)
+  //       and current thrust inputs (again VectorXd), time and accuracy. Create
+  //       an Autodiff context and setup with the states etc.
+  //       DoCalcTimeDerivative with the created context
+
+  DRAKE_DEMAND(this->get_num_input_ports() <= 1);
+  //DRAKE_DEMAND(this->get_num_output_ports() <= 1);
+
+  const int num_inputs = (this->get_num_input_ports() > 0)
+                         ? this->get_input_port(0).size()
+                         : 0,
+      num_outputs = (this->get_num_output_ports() > 0)
+                    ? this->get_output_port(0).size()
+                    : 0;
+
+  // TODO(robinsch): check whether ToAutoDiffXd can be used for RBT/RBTAutodiff
+  // this could be super helpful to still use URDF files to create RBT<double>
+  // and then clone them to <AutoDiffXd> versions. This should be done outside
+  // the LinearizeAB function in order to not do it again in every cycle.
+  // Create an autodiff version of the system.
+  //std::unique_ptr<System<AutoDiffXd>> autodiff_system =
+  //    drake::systems::System<double>::ToAutoDiffXd(system);
+
+  // Initialize autodiff context
+  std::unique_ptr<Context<AutoDiffXd>> autodiff_context =
+      this->CreateDefaultContext();
+  // Try without, in the case no context is passed
+  //autodiff_context->SetTimeStateAndParametersFrom(context);
+
+  // This should be the input argument
+  //const VectorXd x0 =
+  //    context.get_continuous_state_vector().CopyToVector();
+  //const int num_states = x0.size();
+  const VectorXd x0_test = Eigen::VectorXd::Zero(this->get_num_states());
+  const int num_states = x0_test.size();
+
+  // This should be the input argument
+  //VectorXd u0 = Eigen::VectorXd::Zero(num_inputs);
+  //if (num_inputs > 0) {
+  //  u0 = this->EvalEigenVectorInput(context, 0);
+  //}
+  VectorXd u0_test = Eigen::VectorXd::Zero(this->get_num_actuators());
+  // TODO(robinsch): Maybe do EvalEigenVectorInput for RBTAutodiff
+
+
+  auto autodiff_args = math::initializeAutoDiffTuple(x0_test, u0_test);
+  autodiff_context->get_mutable_continuous_state_vector()->SetFromVector(
+      std::get<0>(autodiff_args));
+
+
+  if (num_inputs > 0) {
+    auto input_vector = std::make_unique<BasicVector<AutoDiffXd>>(num_inputs);
+    input_vector->SetFromVector(std::get<1>(autodiff_args));
+    autodiff_context->SetInputPortValue(
+        0,
+        std::make_unique<FreestandingInputPortValue>(std::move(input_vector)));
+  }
+
+  std::unique_ptr<ContinuousState<T>> autodiff_xdot =
+      this->AllocateTimeDerivatives();
+  this->CalcTimeDerivatives(*autodiff_context, autodiff_xdot.get());
+  auto autodiff_xdot_vec = autodiff_xdot->CopyToVector();
+
+  // We DON'T only want equilibrium states...
+  /*
+  // Ensure that xdot0 = f(x0,u0) == 0.
+  if (!math::autoDiffToValueMatrix(autodiff_xdot_vec)
+      .isZero(equilibrium_check_tolerance)) {
+    throw std::runtime_error(
+        "The nominal operating point (x0,u0) is not an equilibrium point of "
+            "the system.  Without additional information, a time-invariant "
+            "linearization of this system is not well defined.");
+  }
+  */
+
+  Eigen::MatrixXd AB = math::autoDiffToGradientMatrix(autodiff_xdot_vec);
+  Eigen::MatrixXd A = AB.leftCols(num_states);
+  Eigen::MatrixXd B = AB.rightCols(num_inputs);
+  std::cout << "AB" << std::endl << AB << std::endl;
+  std::cout << "A" << std::endl << A << std::endl;
+  std::cout << "B" << std::endl << B << std::endl;
+  Eigen::MatrixXd C = Eigen::MatrixXd::Zero(num_outputs, num_states);
+  Eigen::MatrixXd D = Eigen::MatrixXd::Zero(num_outputs, num_inputs);
+  /*
+  if (num_outputs > 0) {
+    std::unique_ptr<SystemOutput<AutoDiffXd>> autodiff_y0 =
+        autodiff_system->AllocateOutput(*autodiff_context);
+    autodiff_system->CalcOutput(*autodiff_context, autodiff_y0.get());
+    auto autodiff_y0_vec = autodiff_y0->get_vector_data(0)->CopyToVector();
+
+    Eigen::MatrixXd CD = math::autoDiffToGradientMatrix(autodiff_y0_vec);
+    C = CD.leftCols(num_states);
+    D = CD.rightCols(num_inputs);
+  }
+   */
+  //   return std::make_unique<LinearSystem<double>>(A, B, C, D);
+
+}
+
 
 // TODO(liang.fok) Eliminate the re-computation of `xdot` once it is cached.
 // Ideally, switch to outputting the derivatives in an output port. This can
@@ -216,7 +327,7 @@ void RigidBodyPlantAutodiff<T>::PrintValue(const int& value) {
 }
 
 // Explicitly instantiates on the most common scalar types.
-template class RigidBodyPlantAutodiff<double>;
+//template class RigidBodyPlantAutodiff<double>;
 template class RigidBodyPlantAutodiff<AutoDiffXd>;
 
 }  // namespace systems
