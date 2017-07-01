@@ -43,6 +43,8 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
 
   ~RigidBodyPlantAutodiff() override;
 
+  void LinearizeAB(const Eigen::VectorXd& x0, const Eigen::VectorXd& u0);
+
  protected:
   // RigidBodyPlant<T> overrides.
   void DoCalcTimeDerivatives(const Context<T>& context,
