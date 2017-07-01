@@ -43,8 +43,9 @@ namespace urdf {
  * @throws std::runtime_error if the rigid body to which the new
  * `RigidBodyFrame` is attached is not found.
  */
-std::shared_ptr<RigidBodyFrame<double>> MakeRigidBodyFrameFromUrdfNode(
-    const RigidBodyTree<double>& tree, const tinyxml2::XMLElement& link,
+template <typename T>
+std::shared_ptr<RigidBodyFrame<T>> MakeRigidBodyFrameFromUrdfNode(
+    const RigidBodyTree<T>& tree, const tinyxml2::XMLElement& link,
     const tinyxml2::XMLElement* pose, const std::string& name,
     int model_instance_id);
 
@@ -72,13 +73,15 @@ std::shared_ptr<RigidBodyFrame<double>> MakeRigidBodyFrameFromUrdfNode(
  * @return A table mapping the names of the models whose instances were just
  * added to @p tree to their instance IDs, which are unique within @p tree.
  */
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfStringWithRpyJointToWorld(
-    const std::string& urdf_string, RigidBodyTree<double>* tree);
+    const std::string& urdf_string, RigidBodyTree<T>* tree);
 
-DRAKE_DEPRECATED(
-  "Please use AddModelInstanceFromUrdfStringWithRpyJointToWorld().")
+//DRAKE_DEPRECATED(
+//  "Please use AddModelInstanceFromUrdfStringWithRpyJointToWorld().")
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfString(
-    const std::string& urdf_string, RigidBodyTree<double>* tree);
+    const std::string& urdf_string, RigidBodyTree<T>* tree);
 
 /**
  * This method is the same as
@@ -111,15 +114,17 @@ ModelInstanceIdTable AddModelInstanceFromUrdfString(
  * added to the `RigidBodyTree` to their instance IDs, which are unique within
  * the `RigidBodyTree`.
  */
+template <typename T>
 ModelInstanceIdTable
 AddModelInstanceFromUrdfStringWithRpyJointToWorldSearchingInRosPackages(
     const std::string& urdf_string, const PackageMap& package_map,
-    RigidBodyTree<double>* tree);
+    RigidBodyTree<T>* tree);
 
-DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfStringWithRpyJointToWorldSearchingInRosPackages().")  // NOLINT(whitespace/line_length)
+//DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfStringWithRpyJointToWorldSearchingInRosPackages().")  // NOLINT(whitespace/line_length)
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfString(
     const std::string& urdf_string, const PackageMap& package_map,
-    RigidBodyTree<double>* tree);
+    RigidBodyTree<T>* tree);
 
 /**
  * Reads a URDF model specified by @p urdf_string and adds an instance of it to
@@ -153,11 +158,12 @@ ModelInstanceIdTable AddModelInstanceFromUrdfString(
  * added to the `RigidBodyTree` to their instance IDs, which are unique within
  * the `RigidBodyTree`.
  */
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfString(
     const std::string& urdf_string, const std::string& root_dir,
     const drake::multibody::joints::FloatingBaseType floating_base_type,
-    std::shared_ptr<RigidBodyFrame<double>> weld_to_frame,
-    RigidBodyTree<double>* tree);
+    std::shared_ptr<RigidBodyFrame<T>> weld_to_frame,
+    RigidBodyTree<T>* tree);
 
 /**
  * This method is the same as AddModelInstanceFromUrdfString() except it has an
@@ -197,20 +203,22 @@ ModelInstanceIdTable AddModelInstanceFromUrdfString(
  * added to the `RigidBodyTree` to their instance IDs, which are unique within
  * the `RigidBodyTree`.
  */
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfStringSearchingInRosPackages(
     const std::string& urdf_string, const PackageMap& package_map,
     const std::string& root_dir,
     const drake::multibody::joints::FloatingBaseType floating_base_type,
-    std::shared_ptr<RigidBodyFrame<double>> weld_to_frame,
-    RigidBodyTree<double>* tree);
+    std::shared_ptr<RigidBodyFrame<T>> weld_to_frame,
+    RigidBodyTree<T>* tree);
 
-DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfStringSearchingInRosPackages().")  // NOLINT(whitespace/line_length)
+//DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfStringSearchingInRosPackages().")  // NOLINT(whitespace/line_length)
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfString(
     const std::string& urdf_string, const PackageMap& package_map,
     const std::string& root_dir,
     const drake::multibody::joints::FloatingBaseType floating_base_type,
-    std::shared_ptr<RigidBodyFrame<double>> weld_to_frame,
-    RigidBodyTree<double>* tree);
+    std::shared_ptr<RigidBodyFrame<T>> weld_to_frame,
+    RigidBodyTree<T>* tree);
 
 /**
  * Reads a URDF model specified by @p urdf_filename and adds an instance of it
@@ -235,12 +243,14 @@ ModelInstanceIdTable AddModelInstanceFromUrdfString(
  * @return A table mapping the names of the models whose instances were just
  * added to @p tree to their instance IDs, which are unique within @p tree.
  */
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfFileWithRpyJointToWorld(
-    const std::string& urdf_filename, RigidBodyTree<double>* tree);
+    const std::string& urdf_filename, RigidBodyTree<T>* tree);
 
-DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfFileWithRpyJointToWorld().")  // NOLINT(whitespace/line_length)
+//DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfFileWithRpyJointToWorld().")  // NOLINT(whitespace/line_length)
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfFile(
-     const std::string& urdf_filename, RigidBodyTree<double>* tree);
+     const std::string& urdf_filename, RigidBodyTree<T>* tree);
 
 /**
  * Reads a URDF model specified by @p urdf_filename and adds an instance of it
@@ -271,16 +281,18 @@ ModelInstanceIdTable AddModelInstanceFromUrdfFile(
  * added to the `RigidBodyTree` to their instance IDs, which are unique within
  * the `RigidBodyTree`.
  */
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfFileToWorld(
     const std::string& urdf_filename,
     const drake::multibody::joints::FloatingBaseType floating_base_type,
-    RigidBodyTree<double>* tree);
+    RigidBodyTree<T>* tree);
 
-DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfFileToWorld().")
+//DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfFileToWorld().")
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfFile(
     const std::string& urdf_filename,
     const drake::multibody::joints::FloatingBaseType floating_base_type,
-    RigidBodyTree<double>* tree);
+    RigidBodyTree<T>* tree);
 
 /**
  * Reads a URDF model specified by @p urdf_filename and adds an instance of it
@@ -314,11 +326,12 @@ ModelInstanceIdTable AddModelInstanceFromUrdfFile(
  * added to the `RigidBodyTree` to their instance IDs, which are unique within
  * the `RigidBodyTree`.
  */
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfFile(
     const std::string& urdf_filename,
     const drake::multibody::joints::FloatingBaseType floating_base_type,
-    std::shared_ptr<RigidBodyFrame<double>> weld_to_frame,
-    RigidBodyTree<double>* tree);
+    std::shared_ptr<RigidBodyFrame<T>> weld_to_frame,
+    RigidBodyTree<T>* tree);
 
 /**
  * This method is the same as AddModelInstanceFromUrdfFile() except it has an
@@ -353,18 +366,20 @@ ModelInstanceIdTable AddModelInstanceFromUrdfFile(
  * added to the `RigidBodyTree` to their instance IDs, which are unique within
  * the `RigidBodyTree`.
  */
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfFileSearchingInRosPackages(
     const std::string& urdf_filename, const PackageMap& package_map,
     const drake::multibody::joints::FloatingBaseType floating_base_type,
-    std::shared_ptr<RigidBodyFrame<double>> weld_to_frame,
-    RigidBodyTree<double>* tree);
+    std::shared_ptr<RigidBodyFrame<T>> weld_to_frame,
+    RigidBodyTree<T>* tree);
 
-DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfFileSearchingInRosPackages().")  // NOLINT(whitespace/line_length)
+//DRAKE_DEPRECATED("Please use AddModelInstanceFromUrdfFileSearchingInRosPackages().")  // NOLINT(whitespace/line_length)
+template <typename T>
 ModelInstanceIdTable AddModelInstanceFromUrdfFile(
      const std::string& urdf_filename, const PackageMap& package_map,
      const drake::multibody::joints::FloatingBaseType floating_base_type,
-     std::shared_ptr<RigidBodyFrame<double>> weld_to_frame,
-     RigidBodyTree<double>* tree);
+     std::shared_ptr<RigidBodyFrame<T>> weld_to_frame,
+     RigidBodyTree<T>* tree);
 }  // namespace urdf
 }  // namespace parsers
 }  // namespace drake
