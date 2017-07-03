@@ -70,7 +70,7 @@ GTEST_TEST(URDFParserTest, ParseJointProperties) {
 
   // Instantiates a RigidBodyTree using the URDF string defined above.
   auto tree = make_unique<RigidBodyTree<double>>();
-  AddModelInstanceFromUrdfStringWithRpyJointToWorld(urdf_string, tree.get());
+  AddModelInstanceFromUrdfStringWithRpyJointToWorld<double>(urdf_string, tree.get());
 
   // Obtains the child link of food_joint.
   RigidBody<double>* foo_joint_link = tree->FindChildBodyOfJoint("foo_joint");
