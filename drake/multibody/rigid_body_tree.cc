@@ -205,6 +205,94 @@ unique_ptr<RigidBodyTree<double>> RigidBodyTree<double>::Clone() const {
   return clone;
 }
 
+template <>
+unique_ptr<RigidBodyTree<AutoDiffXd>> RigidBodyTree<double>::ToAutoDiffXd() const {
+  auto clone = make_unique<RigidBodyTree<AutoDiffXd>>();
+
+  // The following is necessary to remove the world link from the clone. The
+  // world link will be re-added when the bodies are cloned below.
+
+  clone->bodies.clear();
+
+  clone->joint_limit_min = this->joint_limit_min;
+  clone->joint_limit_max = this->joint_limit_max;
+
+  clone->a_grav = this->a_grav;
+  clone->B = this->B;
+
+
+  clone->num_positions_ = this->num_positions_;
+  clone->num_velocities_ = this->num_velocities_;
+  clone->num_model_instances_ = this->num_model_instances_;
+  clone->initialized_ = this->initialized_;
+
+  // Clones the rigid bodies.
+  for (const auto& body : bodies) {
+    clone->bodies.push_back(body->ToAutoDiffXd());
+  }
+
+
+  /*
+  // Clones the joints and adds them to the cloned RigidBody objects.
+  for (const auto& original_body : bodies) {
+    const int body_index = original_body->get_body_index();
+    if (body_index == RigidBodyTreeConstants::kWorldBodyIndex) {
+      continue;
+    }
+
+    RigidBody<double>* cloned_body = clone->get_mutable_body(body_index);
+    DRAKE_DEMAND(cloned_body != nullptr);
+    DRAKE_DEMAND(cloned_body->get_body_index() == body_index);
+
+    const RigidBody<double>* original_body_parent = original_body->get_parent();
+    DRAKE_DEMAND(original_body_parent != nullptr);
+
+    const int parent_body_index = original_body_parent->get_body_index();
+
+    RigidBody<double>* cloned_body_parent =
+        clone->get_mutable_body(parent_body_index);
+    DRAKE_DEMAND(cloned_body_parent != nullptr);
+
+    cloned_body->add_joint(cloned_body_parent,
+                           original_body->getJoint().Clone());
+  }
+
+  for (const auto& original_frame : frames) {
+    const RigidBody<double>& original_frame_body =
+        original_frame->get_rigid_body();
+    const int cloned_frame_body_index =
+        clone->FindBodyIndex(original_frame_body.get_name(),
+                             original_frame_body.get_model_instance_id());
+    RigidBody<double>* cloned_frame_body =
+        clone->get_mutable_body(cloned_frame_body_index);
+    DRAKE_DEMAND(cloned_frame_body != nullptr);
+    std::shared_ptr<RigidBodyFrame<double>> cloned_frame =
+        original_frame->Clone(cloned_frame_body);
+    clone->frames.push_back(cloned_frame);
+  }
+
+  for (const auto& actuator : actuators) {
+    const RigidBody<double>& cloned_body =
+        clone->get_body(actuator.body_->get_body_index());
+    clone->actuators.emplace_back(
+        actuator.name_, &cloned_body, actuator.reduction_,
+        actuator.effort_limit_min_, actuator.effort_limit_max_);
+  }
+
+  for (const auto& loop : loops) {
+    std::shared_ptr<RigidBodyFrame<double>> frame_a =
+        clone->findFrame(loop.frameA_->get_name(),
+                         loop.frameA_->get_model_instance_id());
+    std::shared_ptr<RigidBodyFrame<double>> frame_b =
+        clone->findFrame(loop.frameB_->get_name(),
+                         loop.frameB_->get_model_instance_id());
+    clone->loops.emplace_back(frame_a, frame_b, loop.axis_);
+  }
+  */
+  return clone;
+}
+
+
 template <typename T>
 bool RigidBodyTree<T>::transformCollisionFrame(
     RigidBody<T>* body, const Eigen::Isometry3d& displace_transform) {
@@ -392,7 +480,17 @@ void RigidBodyTree<T>::compile() {
     }
   }
 
-  B.resize(num_velocities_, actuators.size());
+  double kM = 0.0245;
+  double kF = 1;
+  double L = 0.175;
+  B.resize(6, 4);
+  B << 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0,
+      kF, kF, kF, kF,
+      0.0, L*kF, 0.0, -L*kF,
+      -L*kF, 0.0, L*kF, 0.0,
+      kM, -kM, kM, -kM;
+  /*
   B = MatrixXd::Zero(num_velocities_, actuators.size());
   for (size_t ia = 0; ia < actuators.size(); ++ia) {
     for (int i = 0; i < actuators[ia].body_->getJoint().get_num_velocities();
@@ -401,7 +499,7 @@ void RigidBodyTree<T>::compile() {
           actuators[ia].reduction_;
     }
   }
-
+  */
   // Initializes the joint limit vectors.
   joint_limit_min = VectorXd::Constant(
       num_positions_, -std::numeric_limits<double>::infinity());
