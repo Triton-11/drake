@@ -206,7 +206,8 @@ unique_ptr<RigidBodyTree<double>> RigidBodyTree<double>::Clone() const {
 }
 
 template <>
-unique_ptr<RigidBodyTree<AutoDiffXd>> RigidBodyTree<double>::ToAutoDiffXd() const {
+unique_ptr<RigidBodyTree<AutoDiffXd>> RigidBodyTree<double>::ToAutoDiffXd()
+    const {
   auto clone = make_unique<RigidBodyTree<AutoDiffXd>>();
 
   // The following is necessary to remove the world link from the clone. The
@@ -231,8 +232,6 @@ unique_ptr<RigidBodyTree<AutoDiffXd>> RigidBodyTree<double>::ToAutoDiffXd() cons
     clone->bodies.push_back(body->ToAutoDiffXd());
   }
 
-
-  /*
   // Clones the joints and adds them to the cloned RigidBody objects.
   for (const auto& original_body : bodies) {
     const int body_index = original_body->get_body_index();
@@ -240,7 +239,7 @@ unique_ptr<RigidBodyTree<AutoDiffXd>> RigidBodyTree<double>::ToAutoDiffXd() cons
       continue;
     }
 
-    RigidBody<double>* cloned_body = clone->get_mutable_body(body_index);
+    RigidBody<AutoDiffXd>* cloned_body = clone->get_mutable_body(body_index);
     DRAKE_DEMAND(cloned_body != nullptr);
     DRAKE_DEMAND(cloned_body->get_body_index() == body_index);
 
@@ -249,7 +248,7 @@ unique_ptr<RigidBodyTree<AutoDiffXd>> RigidBodyTree<double>::ToAutoDiffXd() cons
 
     const int parent_body_index = original_body_parent->get_body_index();
 
-    RigidBody<double>* cloned_body_parent =
+    RigidBody<AutoDiffXd>* cloned_body_parent =
         clone->get_mutable_body(parent_body_index);
     DRAKE_DEMAND(cloned_body_parent != nullptr);
 
@@ -263,32 +262,37 @@ unique_ptr<RigidBodyTree<AutoDiffXd>> RigidBodyTree<double>::ToAutoDiffXd() cons
     const int cloned_frame_body_index =
         clone->FindBodyIndex(original_frame_body.get_name(),
                              original_frame_body.get_model_instance_id());
-    RigidBody<double>* cloned_frame_body =
+    RigidBody<AutoDiffXd>* cloned_frame_body =
         clone->get_mutable_body(cloned_frame_body_index);
     DRAKE_DEMAND(cloned_frame_body != nullptr);
-    std::shared_ptr<RigidBodyFrame<double>> cloned_frame =
-        original_frame->Clone(cloned_frame_body);
+    std::shared_ptr<RigidBodyFrame<AutoDiffXd>> cloned_frame =
+        original_frame->ToAutoDiffXd(cloned_frame_body);
     clone->frames.push_back(cloned_frame);
   }
 
+  // RigidBodyActuator is not templated on T.
+  DRAKE_DEMAND(this->get_num_actuators() == 0 &&
+      "RigidBodyTree ToAutoDiffXd does not support actuators.");
+  /*
   for (const auto& actuator : actuators) {
-    const RigidBody<double>& cloned_body =
+    const RigidBody<AutoDiffXd>& cloned_body =
         clone->get_body(actuator.body_->get_body_index());
     clone->actuators.emplace_back(
         actuator.name_, &cloned_body, actuator.reduction_,
         actuator.effort_limit_min_, actuator.effort_limit_max_);
   }
+  */
 
   for (const auto& loop : loops) {
-    std::shared_ptr<RigidBodyFrame<double>> frame_a =
+    std::shared_ptr<RigidBodyFrame<AutoDiffXd>> frame_a =
         clone->findFrame(loop.frameA_->get_name(),
                          loop.frameA_->get_model_instance_id());
-    std::shared_ptr<RigidBodyFrame<double>> frame_b =
+    std::shared_ptr<RigidBodyFrame<AutoDiffXd>> frame_b =
         clone->findFrame(loop.frameB_->get_name(),
                          loop.frameB_->get_model_instance_id());
     clone->loops.emplace_back(frame_a, frame_b, loop.axis_);
   }
-  */
+
   return clone;
 }
 

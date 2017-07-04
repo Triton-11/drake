@@ -31,6 +31,18 @@ std::shared_ptr<RigidBodyFrame<T>> RigidBodyFrame<T>::Clone(RigidBody<T>* body)
 }
 
 template <typename T>
+std::shared_ptr<RigidBodyFrame<drake::AutoDiffXd>>
+    RigidBodyFrame<T>::ToAutoDiffXd(RigidBody<drake::AutoDiffXd>* body)
+    const {
+  auto frame = std::make_shared<RigidBodyFrame<drake::AutoDiffXd>>();
+  frame->set_name(name_);
+  frame->set_rigid_body(body);
+  frame->set_transform_to_body(transform_to_body_);
+  frame->set_frame_index(frame_index_);
+  return frame;
+}
+
+template <typename T>
 int RigidBodyFrame<T>::get_model_instance_id() const {
   return body_->get_model_instance_id();
 }

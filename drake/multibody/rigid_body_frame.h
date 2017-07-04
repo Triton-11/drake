@@ -71,7 +71,11 @@ class RigidBodyFrame {
    * This pointer must remain valid for the duration of the clone's lifetime.
    */
   virtual std::shared_ptr<RigidBodyFrame<T>> Clone(RigidBody<T>* body) const;
-
+  // TODO(robinsch): Two version possible:
+  // 1. virtual, but implemented in templated way as RBF<T>::
+  // 2. remove virtual, then it is ok without templating
+  virtual std::shared_ptr<RigidBodyFrame<drake::AutoDiffXd>>
+      ToAutoDiffXd(RigidBody<drake::AutoDiffXd>* body) const;
   /**
    * Returns the ID of the model instance to which this rigid body frame
    * belongs.
