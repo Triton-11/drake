@@ -14,8 +14,9 @@ namespace rigid_body_loop {
  * This method will only return `true` if the provided `original` is exactly the
  * same as the provided clone.
  */
+template <typename T>
 bool CompareToClone(const RigidBodyLoop<double>& original,
-                    const RigidBodyLoop<double>& other);
+                    const RigidBodyLoop<T>& other);
 
 }  // namespace rigid_body_loop
 }  // namespace test
