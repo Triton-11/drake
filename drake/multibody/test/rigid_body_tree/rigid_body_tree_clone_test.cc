@@ -50,7 +50,10 @@ TEST_F(RigidBodyTreeCloneTest, CloneTwoDofRobot) {
   std::string filename = drake::GetDrakePath() +
       "/multibody/test/rigid_body_tree/two_dof_robot.urdf";
   AddModelInstanceFromUrdfFileWithRpyJointToWorld(filename, tree_.get());
-  EXPECT_TRUE(CompareToClone(*tree_));
+  std::unique_ptr<RigidBodyTree<double>> clone = tree_->Clone();
+  EXPECT_TRUE(CompareToClone(*tree_, *clone));
+  // TODO(robinsch): Also test this for ToAutoDiffXd, find a workaround for the
+  // actuators that are not compatible with the RigidBodyTree<AutoDiffXd>
 }
 
 // Tests RigidBodyTree::Clone() using Atlas.
@@ -59,7 +62,8 @@ TEST_F(RigidBodyTreeCloneTest, CloneAtlas) {
       "/examples/Atlas/urdf/atlas_convex_hull.urdf";
   AddModelInstanceFromUrdfFileToWorld(filename, multibody::joints::kQuaternion,
       tree_.get());
-  EXPECT_TRUE(CompareToClone(*tree_));
+  std::unique_ptr<RigidBodyTree<double>> clone = tree_->Clone();
+  EXPECT_TRUE(CompareToClone(*tree_, *clone));
 }
 
 // Tests RigidBodyTree::Clone() using a Prius with LIDAR sensors.
@@ -68,7 +72,8 @@ TEST_F(RigidBodyTreeCloneTest, ClonePrius) {
      "/automotive/models/prius/prius_with_lidar.sdf";
   AddModelInstancesFromSdfFileToWorld(filename, multibody::joints::kQuaternion,
       tree_.get());
-  EXPECT_TRUE(CompareToClone(*tree_));
+  std::unique_ptr<RigidBodyTree<double>> clone = tree_->Clone();
+  EXPECT_TRUE(CompareToClone(*tree_, *clone));
 }
 
 // Tests RigidBodyTree::Clone() using Valkyrie.
@@ -82,7 +87,20 @@ TEST_F(RigidBodyTreeCloneTest, CloneValkyrie) {
   // floating joint type.
   AddModelInstanceFromUrdfFileToWorld(filename, multibody::joints::kFixed,
       tree_.get());
-  EXPECT_TRUE(CompareToClone(*tree_));
+  std::unique_ptr<RigidBodyTree<double>> clone = tree_->Clone();
+  EXPECT_TRUE(CompareToClone(*tree_, *clone));
+}
+
+// Tests RigidBodyTree::Clone() and RigidBodyTree::ToAutoDiffXd using Quadrotor.
+TEST_F(RigidBodyTreeCloneTest, CloneQuadrotor) {
+  std::string filename = drake::GetDrakePath() +
+      "/examples/Quadrotor/quadrotor.urdf";
+  AddModelInstanceFromUrdfFileToWorld(filename,
+      multibody::joints::kRollPitchYaw, tree_.get());
+  std::unique_ptr<RigidBodyTree<double>> clone = tree_->Clone();
+  EXPECT_TRUE(CompareToClone(*tree_, *clone));
+  std::unique_ptr<RigidBodyTree<AutoDiffXd>> clone_ad = tree_->ToAutoDiffXd();
+  EXPECT_TRUE(CompareToClone(*tree_, *clone_ad));
 }
 
 class TestRbtCloneDiagram : public Diagram<double> {
