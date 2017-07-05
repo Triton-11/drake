@@ -10,8 +10,9 @@ namespace multibody {
 namespace test {
 namespace rigid_body {
 
+template <typename T>
 bool CompareToClone(const RigidBody<double>& original,
-    const RigidBody<double>& clone) {
+    const RigidBody<T>& clone) {
   if (original.get_name() != clone.get_name()) {
     drake::log()->debug(
         "CompareToClone(RigidBody): name mismatch:\n"
@@ -97,6 +98,12 @@ bool CompareToClone(const RigidBody<double>& original,
   }
   return true;
 }
+
+// Explicitly instantiates on the most common scalar types.
+template bool CompareToClone<double>(const RigidBody<double>& original,
+                                     const RigidBody<double>& clone);
+template bool CompareToClone<AutoDiffXd>(const RigidBody<double>& original,
+                                         const RigidBody<AutoDiffXd>& clone);
 
 }  // namespace rigid_body
 }  // namespace test
