@@ -15,12 +15,8 @@ namespace rigid_body_frame {
  * same as the provided clone.
  */
 template <typename T>
-bool CompareToClone(const RigidBodyFrame<T>& original,
+bool CompareToClone(const RigidBodyFrame<double>& original,
                     const RigidBodyFrame<T>& clone);
-
-bool CompareToAutoDiffXd(const RigidBodyFrame<double>& original,
-                         const RigidBodyFrame<AutoDiffXd>& clone);
-
 
 }  // namespace rigid_body_frame
 }  // namespace test
