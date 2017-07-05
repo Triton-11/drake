@@ -105,6 +105,15 @@ GTEST_TEST(RigidBodyTest, TestClone) {
   cloned_body->set_mass(kMass + 1);
   EXPECT_FALSE(multibody::test::rigid_body::CompareToClone(original_body,
       *cloned_body));
+
+  auto autodiff_body = original_body.ToAutoDiffXd();
+  EXPECT_TRUE(multibody::test::rigid_body::CompareToClone(original_body,
+      *autodiff_body));
+
+  // Ensures that a modified clone does not match.
+  autodiff_body->set_mass(kMass + 1);
+  EXPECT_FALSE(multibody::test::rigid_body::CompareToClone(original_body,
+      *autodiff_body));
 }
 
 }  // namespace
