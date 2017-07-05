@@ -484,17 +484,7 @@ void RigidBodyTree<T>::compile() {
     }
   }
 
-  double kM = 0.0245;
-  double kF = 1;
-  double L = 0.175;
-  B.resize(6, 4);
-  B << 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0,
-      kF, kF, kF, kF,
-      0.0, L*kF, 0.0, -L*kF,
-      -L*kF, 0.0, L*kF, 0.0,
-      kM, -kM, kM, -kM;
-  /*
+  B.resize(num_velocities_, actuators.size());
   B = MatrixXd::Zero(num_velocities_, actuators.size());
   for (size_t ia = 0; ia < actuators.size(); ++ia) {
     for (int i = 0; i < actuators[ia].body_->getJoint().get_num_velocities();
@@ -503,7 +493,7 @@ void RigidBodyTree<T>::compile() {
           actuators[ia].reduction_;
     }
   }
-  */
+
   // Initializes the joint limit vectors.
   joint_limit_min = VectorXd::Constant(
       num_positions_, -std::numeric_limits<double>::infinity());
