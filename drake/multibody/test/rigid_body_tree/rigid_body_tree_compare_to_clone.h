@@ -13,7 +13,9 @@ namespace rigid_body_tree {
  * an *exact* match is performed. This method will only return `true` if the
  * provided %RigidBodyTree is exactly the same as its clone.
  */
-bool CompareToClone(const RigidBodyTree<double>& tree);
+template <typename T>
+bool CompareToClone(const RigidBodyTree<double>& tree,
+                    const RigidBodyTree<T>& clone);
 
 }  // namespace rigid_body_tree
 }  // namespace test
