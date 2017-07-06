@@ -13,6 +13,7 @@
 #include "drake/common/drake_assert.h"
 #include "drake/common/drake_deprecated.h"
 #include "drake/common/eigen_types.h"
+#include "drake/common/eigen_autodiff_types.h"
 #include "drake/multibody/collision/drake_collision.h"
 #include "drake/multibody/joints/drake_joint.h"
 
@@ -38,6 +39,7 @@ class RigidBody {
    * The visual and collision elements will be cloned pending identified need.
    */
   std::unique_ptr<RigidBody<T>> Clone() const;
+  std::unique_ptr<RigidBody<drake::AutoDiffXd>> ToAutoDiffXd() const;
 
   /**
    * Returns the name of this rigid body.

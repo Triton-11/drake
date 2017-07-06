@@ -119,6 +119,7 @@ class RigidBodyTree {
    * *except* for collision and visual elements are cloned.
    */
   std::unique_ptr<RigidBodyTree<double>> Clone() const;
+  std::unique_ptr<RigidBodyTree<drake::AutoDiffXd>> ToAutoDiffXd() const;
 
   /**
    * Adds a new model instance to this `RigidBodyTree`. The model instance is
@@ -1510,6 +1511,11 @@ class RigidBodyTree {
   Eigen::MatrixXd B;  // the B matrix maps inputs into joint-space forces
 
  private:
+  // Make RigidBodyTree templated on any other scalar type a friend of
+  // RigidBodyTree<T> so that CloneToAutoDiff() can access private methods from
+  // RigidBodyTree<T>.
+  template <typename> friend class RigidBodyTree;
+
   // The number of generalized position states in this rigid body tree.
   int num_positions_{};
 

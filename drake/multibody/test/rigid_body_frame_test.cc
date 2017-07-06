@@ -17,7 +17,7 @@ namespace {
 using std::make_unique;
 
 // Tests ability to clone a RigidBodyFrame.
-GTEST_TEST(RigidBodyFrameTest, TestClone) {
+GTEST_TEST(RigidBodyFrameTest, TestCloneDouble) {
   const std::string kBodyName = "FooBody";
   const int kModelInstanceId = 1234;
 
@@ -39,6 +39,17 @@ GTEST_TEST(RigidBodyFrameTest, TestClone) {
   // Ensures that a modified clone does not match.
   cloned_frame->set_name(kName + "_mismatch");
   EXPECT_FALSE(rigid_body_frame::CompareToClone(original_frame, *cloned_frame));
+
+  auto autodiff_body = original_body.ToAutoDiffXd();
+  auto autodiff_frame = original_frame.ToAutoDiffXd(autodiff_body.get());
+
+  EXPECT_TRUE(
+      rigid_body_frame::CompareToClone(original_frame, *autodiff_frame));
+
+  // Ensures that a modified clone does not match.
+  autodiff_frame->set_name(kName + "_mismatch");
+  EXPECT_FALSE(
+      rigid_body_frame::CompareToClone(original_frame, *autodiff_frame));
 }
 
 }  // namespace

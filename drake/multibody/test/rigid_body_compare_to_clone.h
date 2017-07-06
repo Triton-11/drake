@@ -14,8 +14,9 @@ namespace rigid_body {
  * This method will only return `true` if the provided `original` is exactly the
  * same as the provided clone.
  */
+template <typename T>
 bool CompareToClone(const RigidBody<double>& original,
-    const RigidBody<double>& clone);
+                    const RigidBody<T>& clone);
 
 }  // namespace rigid_body
 }  // namespace test
