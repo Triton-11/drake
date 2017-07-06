@@ -420,8 +420,8 @@ void RigidBodyPlant<T>::CalcKinematicsResultsOutput(
 template <typename T>
 void RigidBodyPlant<T>::DoCalcTimeDerivatives(
     const Context<T>& context, ContinuousState<T>* derivatives) const {
-  //static_assert(std::is_same<double, T>::value,
-  //              "Only support templating on double for now");
+  static_assert(std::is_same<double, T>::value,
+                "Only support templating on double for now");
   if (timestep_ > 0.0) return;
 
   VectorX<T> u = EvaluateActuatorInputs(context);
@@ -448,15 +448,12 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
   // TODO(amcastro-tri): preallocate the optimization problem and constraints,
   // and simply update them then solve on each function eval.
   // How to place something like this in the context?
-  /*
   drake::solvers::MathematicalProgram prog;
   drake::solvers::VectorXDecisionVariable vdot =
       prog.NewContinuousVariables(nv, "vdot");
-  */
 
   auto H = tree_->massMatrix(kinsol);
-  //MatrixX<T> H = tree_->massMatrix(kinsol);
-  MatrixX<T> H_and_neg_JT = H;
+  Eigen::MatrixXd H_and_neg_JT = H;
 
   // There are no external wrenches, but it is a required argument in
   // dynamicsBiasTerm.
@@ -468,56 +465,7 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
   // H*vdot -J^T*f = right_hand_side.
   VectorX<T> right_hand_side =
       -tree_->dynamicsBiasTerm(kinsol, no_external_wrenches);
-  VectorX<T> u_;  // The plant-centric input vector of actuation values.
-  u_.resize(4);
-  u_.fill(0.);
-  u_ << 1.6, 1.5, 1.6, 1.51;
-
-  VectorX<T> state = context.get_continuous_state_vector().CopyToVector();
-
-
-  // Extract orientation and angular velocities.
-  Vector3<T> rpy = state.segment(3, 3);
-
-  // Convert orientation to a rotation matrix.
-  Matrix3<T> R = math::rpy2rotmat(rpy);
-
-  Matrix3<T> Z;
-  Z.fill(0.0);
-  Matrix6<T> RR;
-  RR << R, Z, Z, R;
-  std::cout << "RR" << std::endl <<RR << std::endl;
-
-
-  std::cout << "right_hand_side:" << std::endl << right_hand_side << std::endl;
-  /*
-  double kM = 0.0245;
-  double kF = 1;
-  double L = 0.175;
-
-
-  Eigen::MatrixXd B;
-  B.resize(nv, num_actuators);
-  B = Eigen::MatrixXd::Zero(nv, num_actuators);
-  B << 0, 0, 0, 0,
-       0, 0, 0, 0,
-       kF, kF, kF, kF,
-       0, L*kF, 0, -L*kF,
-       -L*kF, 0, L*kF, 0,
-       kM, -kM, kM, -kM;
-
-  tree_->B << 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0,
-              kF, kF, kF, kF,
-              0.0, L*kF, 0.0, -L*kF,
-              -L*kF, 0.0, L*kF, 0.0,
-              kM, -kM, kM, -kM;
-  */
-  // TODO(robinsch): Correctly compute input forces here
-  if (num_actuators > 0) right_hand_side += RR * tree_->B * u_;
-  std::cout << "tree_->B" << std::endl << tree_->B << std::endl;
-  std::cout << "B * u" << std::endl << tree_->B * u_ << std::endl;
-
+  if (num_actuators > 0) right_hand_side += tree_->B * u;
 
   // Applies joint limit forces.
   // TODO(amcastro-tri): Maybe move to
@@ -536,16 +484,8 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
     }
   }
 
-  // Contact force does not support autodiff (ComputeMaximumDepthCollisionPoints doesn't)
-  // https://github.com/RobotLocomotion/drake/issues/4267#issuecomment-264078942
-  /*
-  // Returns zero for now
   right_hand_side += ComputeContactForce(kinsol);
-  */
 
-  // There are no position constraints (loops) in our RBT, so we can skip the
-  // tree_->getNumPositionConstraints()
-  /*
   solvers::VectorXDecisionVariable position_force{};
 
   if (tree_->getNumPositionConstraints()) {
@@ -568,44 +508,16 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
                                     H_and_neg_JT.cols() + J.rows());
     H_and_neg_JT.rightCols(J.rows()) = -J.transpose();
   }
-  */
 
-  /*
-  solvers::VectorXDecisionVariable position_force{};
   // Adds [H,-J^T] * [vdot;f] = -C.
   prog.AddLinearEqualityConstraint(H_and_neg_JT, right_hand_side,
                                    {vdot, position_force});
 
   prog.Solve();
-  */
-
-  // Solve the linear equation Hx=rhs for x
-  // H has to be a Hermitian, positive-definite matrix
-  Eigen::LLT<MatrixX<T>> lltOfH(H); // compute the Cholesky decomposition of A
-  // Check if H is a Hermitian, positive-definite matrix
-  if (lltOfH.info() != Eigen::Success) {
-    // TODO(robinsch): Add proper error message when lltOfH fails.
-    std::cout << "### FAIL ERROR of lltOfH" << std::endl;
-    std::cout << "The H Matrix is:" << std::endl << H << std::endl;
-  }
-
-  auto vdot_cholesky = lltOfH.solve(right_hand_side);
-
-  std::cout << vdot_cholesky.cols() << std::endl;
-  std::cout << vdot_cholesky.rows() << std::endl;
-
-  std::cout << "The H Matrix: " << std::endl << H << std::endl;
-  /*
-  std::cout << "To check H, let us compute L * L.transpose()" << std::endl;
-  MatrixX<T> L = lltOfH.matrixL(); // retrieve factor L  in the decomposition
-  std::cout << L * L.transpose() << std::endl;
-  std::cout << "vdot_cholesky" << std::endl << vdot_cholesky << std::endl;
-   */
-
 
   VectorX<T> xdot(get_num_states());
-  //const auto& vdot_value = prog.GetSolution(vdot);
-  xdot << tree_->transformVelocityToQDot(kinsol, v), vdot_cholesky;
+  const auto& vdot_value = prog.GetSolution(vdot);
+  xdot << tree_->transformVelocityToQDot(kinsol, v), vdot_value;
   derivatives->SetFromVector(xdot);
 }
 
@@ -614,8 +526,8 @@ void RigidBodyPlant<T>::DoCalcDiscreteVariableUpdates(
     const drake::systems::Context<T>& context,
     const std::vector<const drake::systems::DiscreteUpdateEvent<double>*>&,
     drake::systems::DiscreteValues<T>* updates) const {
-  //static_assert(std::is_same<double, T>::value,
-  //              "Only support templating on double for now");
+  static_assert(std::is_same<double, T>::value,
+                "Only support templating on double for now");
   if (timestep_ == 0.0) return;
 
   VectorX<T> u = EvaluateActuatorInputs(context);
@@ -833,7 +745,6 @@ VectorX<T> RigidBodyPlant<T>::EvaluateActuatorInputs(
 
 // Explicitly instantiates on the most common scalar types.
 template class RigidBodyPlant<double>;
-template class RigidBodyPlant<AutoDiffXd>;
 
 }  // namespace systems
 }  // namespace drake
