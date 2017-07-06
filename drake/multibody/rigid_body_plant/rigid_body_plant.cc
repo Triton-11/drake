@@ -521,6 +521,13 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
   derivatives->SetFromVector(xdot);
 }
 
+template <>
+void RigidBodyPlant<AutoDiffXd>::DoCalcTimeDerivatives(
+    const Context<AutoDiffXd>& context,
+    ContinuousState<AutoDiffXd>* derivatives) const {
+  return;
+}
+
 template <typename T>
 void RigidBodyPlant<T>::DoCalcDiscreteVariableUpdates(
     const drake::systems::Context<T>& context,
@@ -573,6 +580,13 @@ void RigidBodyPlant<T>::DoCalcDiscreteVariableUpdates(
   // qn = q + h*qdn.
   xn << q + timestep_ * tree_->transformVelocityToQDot(kinsol, vn_sol), vn_sol;
   updates->get_mutable_vector(0)->SetFromVector(xn);
+}
+
+template <>
+void RigidBodyPlant<AutoDiffXd>::DoCalcDiscreteVariableUpdates(
+    const drake::systems::Context<AutoDiffXd>& context,
+    drake::systems::DiscreteValues<AutoDiffXd>* updates) const {
+  return;
 }
 
 template <typename T>
@@ -700,6 +714,15 @@ void RigidBodyPlant<T>::CalcContactResultsOutput(
   compliant_contact_model_->ComputeContactForce(*tree_.get(), kinsol, contacts);
 }
 
+template <>
+VectorX<AutoDiffXd> RigidBodyPlant<AutoDiffXd>::ComputeContactForce(
+    const KinematicsCache<AutoDiffXd>& kinsol,
+    ContactResults<AutoDiffXd>* contacts) const {
+  VectorX<AutoDiffXd> contact_force(kinsol.getV().rows(), 1);
+  contact_force.setZero();
+  return contact_force;
+}
+
 template <typename T>
 VectorX<T> RigidBodyPlant<T>::EvaluateActuatorInputs(
     const Context<T>& context) const {
@@ -745,6 +768,7 @@ VectorX<T> RigidBodyPlant<T>::EvaluateActuatorInputs(
 
 // Explicitly instantiates on the most common scalar types.
 template class RigidBodyPlant<double>;
+template class RigidBodyPlant<AutoDiffXd>;
 
 }  // namespace systems
 }  // namespace drake
