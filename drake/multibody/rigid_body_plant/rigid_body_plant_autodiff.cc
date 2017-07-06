@@ -71,7 +71,8 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   // TODO(amcastro-tri): external_wrenches should be made an optional
   // parameter
   // of dynamicsBiasTerm().
-  const typename RigidBodyTree<T>::BodyToWrenchMap no_external_wrenches;
+  eigen_aligned_std_unordered_map<
+      RigidBody<T> const*, WrenchVector<T>> no_external_wrenches;
   // right_hand_side is the right hand side of the system's equations:
   // H*vdot -J^T*f = right_hand_side.
   VectorX<T> right_hand_side =
