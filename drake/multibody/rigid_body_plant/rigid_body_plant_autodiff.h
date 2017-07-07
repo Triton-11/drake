@@ -63,6 +63,9 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
 
   VectorX<T> EvaluateActuatorInputs(const Context<T>& context) const;
 
+  VectorX<T> ThrustsToSpatialForce(const Context<T>& context,
+                                   const VectorX<T>& u_thrusts) const;
+
   // Publishes `xdot`, the derivative of `x`, which is this system's generalized
   // state vector. This vector contains the derivatives of the RigidBodyTree's
   // joint's positions and velocities. Thus, the units are velocities and
