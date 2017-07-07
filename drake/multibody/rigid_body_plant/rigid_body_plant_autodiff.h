@@ -36,7 +36,7 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
   /// @param[in] lcm  A non-null pointer to the LCM subsystem to publish on.
   /// The pointer must remain valid for the lifetime of this object.
 
-  // Inheriting RBP contructor.
+  // Inheriting RBP constructor.
   //using RigidBodyPlant<T>::RigidBodyPlant;
   explicit RigidBodyPlantAutodiff(std::unique_ptr<const RigidBodyTree<T>> tree,
                                   double timestep = 0.0);
@@ -54,9 +54,14 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
   //std::unique_ptr<const RigidBodyTree<T>> tree_;
   const RigidBodyTree<T>& tree_;
 
+  // Quadrotor inputs
+  int kInputDimension{4};
+
   // timestep == 0.0 implies continuous-time dynamics,
   // timestep > 0.0 implies a discrete-time dynamics approximation.
   const double timestep_{0.0};
+
+  VectorX<T> EvaluateActuatorInputs(const Context<T>& context) const;
 
   // Publishes `xdot`, the derivative of `x`, which is this system's generalized
   // state vector. This vector contains the derivatives of the RigidBodyTree's
