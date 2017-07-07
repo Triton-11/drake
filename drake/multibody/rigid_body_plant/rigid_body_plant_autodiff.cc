@@ -17,6 +17,7 @@ RigidBodyPlantAutodiff<T>::RigidBodyPlantAutodiff(std::unique_ptr<const RigidBod
                                   double timestep)
     : RigidBodyPlant<T>::RigidBodyPlant(move(tree)),
       tree_(this->get_rigid_body_tree()), timestep_(timestep) {
+  this->DeclareInputPort(systems::kVectorValued, kInputDimension);
   /*state_output_port_index_ =
       this->DeclareOutputPort(kVectorValued, get_num_states()).get_index();
   ExportModelInstanceCentricPorts();
@@ -40,7 +41,7 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   if (timestep_ > 0.0) return;
 
   // TODO(robinsch): Proper Actuator inputs with tree
-  //VectorX<T> u = EvaluateActuatorInputs(context);
+  VectorX<T> u_thrusts = EvaluateActuatorInputs(context);
 
   // TODO(amcastro-tri): provide nicer accessor to an Eigen representation for
   // LeafSystems.
@@ -50,9 +51,10 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
 
   const int nq = this->get_num_positions();
   const int nv = this->get_num_velocities();
-  //const int num_actuators = get_num_actuators();
-  // TODO(robinsch): Proper num_actuators with tree
-  const int num_actuators = 4;
+  const int num_inputs = (this->get_num_input_ports() > 0)
+                         ? this->get_input_port(0).size()
+                         : 0;
+  std::cout << "num_inputs: " << num_inputs << std::endl;
   // TODO(amcastro-tri): we would like to compile here with `auto` instead of
   // `VectorX<T>`. However it seems we get some sort of block from a block
   // which
@@ -99,29 +101,6 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
 
 
   std::cout << "right_hand_side:" << std::endl << right_hand_side << std::endl;
-  /*
-  double kM = 0.0245;
-  double kF = 1;
-  double L = 0.175;
-
-
-  Eigen::MatrixXd B;
-  B.resize(nv, num_actuators);
-  B = Eigen::MatrixXd::Zero(nv, num_actuators);
-  B << 0, 0, 0, 0,
-       0, 0, 0, 0,
-       kF, kF, kF, kF,
-       0, L*kF, 0, -L*kF,
-       -L*kF, 0, L*kF, 0,
-       kM, -kM, kM, -kM;
-
-  tree_.B << 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0,
-              kF, kF, kF, kF,
-              0.0, L*kF, 0.0, -L*kF,
-              -L*kF, 0.0, L*kF, 0.0,
-              kM, -kM, kM, -kM;
-  */
   // TODO(robinsch): Correctly compute input forces here
   if (num_actuators > 0) right_hand_side += RR * tree_.B * u_;
   std::cout << "tree_.B" << std::endl << tree_.B << std::endl;
@@ -209,7 +188,6 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   std::cout << derivatives->CopyToVector() << std::endl;
 }
 template <typename T>
-// TODO(robinsch): Fix/decide pass by reference/value for this function...
 void RigidBodyPlantAutodiff<T>::LinearizeAB(const Eigen::VectorXd& x0,
     const Eigen::VectorXd& u0) {
 //  return;
@@ -233,6 +211,8 @@ void RigidBodyPlantAutodiff<T>::LinearizeAB(const Eigen::VectorXd& x0,
       num_outputs = (this->get_num_output_ports() > 0)
                     ? this->get_output_port(0).size()
                     : 0;
+  const int num_states = this->get_num_states();
+  std::cout << "num_states: " << num_states << std::endl;
 
   // TODO(robinsch): check whether ToAutoDiffXd can be used for RBT/RBTAutodiff
   // this could be super helpful to still use URDF files to create RBT<double>
@@ -252,22 +232,16 @@ void RigidBodyPlantAutodiff<T>::LinearizeAB(const Eigen::VectorXd& x0,
   //const VectorXd x0 =
   //    context.get_continuous_state_vector().CopyToVector();
   //const int num_states = x0.size();
-  const VectorXd x0_test = Eigen::VectorXd::Zero(this->get_num_states());
-  const int num_states = x0_test.size();
 
   // This should be the input argument
   //VectorXd u0 = Eigen::VectorXd::Zero(num_inputs);
   //if (num_inputs > 0) {
   //  u0 = this->EvalEigenVectorInput(context, 0);
   //}
-  VectorXd u0_test = Eigen::VectorXd::Zero(this->get_num_actuators());
-  // TODO(robinsch): Maybe do EvalEigenVectorInput for RBTAutodiff
 
-
-  auto autodiff_args = math::initializeAutoDiffTuple(x0_test, u0_test);
+  auto autodiff_args = math::initializeAutoDiffTuple(x0, u0);
   autodiff_context->get_mutable_continuous_state_vector()->SetFromVector(
       std::get<0>(autodiff_args));
-
 
   if (num_inputs > 0) {
     auto input_vector = std::make_unique<BasicVector<AutoDiffXd>>(num_inputs);
@@ -318,6 +292,12 @@ void RigidBodyPlantAutodiff<T>::LinearizeAB(const Eigen::VectorXd& x0,
 
 }
 
+template <typename T>
+VectorX<T> RigidBodyPlantAutodiff<T>::EvaluateActuatorInputs(
+    const Context<T>& context) const {
+  VectorX<T> u = this->EvalVectorInput(context, 0)->get_value();
+  return u;
+}
 
 // TODO(liang.fok) Eliminate the re-computation of `xdot` once it is cached.
 // Ideally, switch to outputting the derivatives in an output port. This can
