@@ -79,55 +79,12 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   // H*vdot -J^T*f = right_hand_side.
   VectorX<T> right_hand_side =
       -tree_.dynamicsBiasTerm(kinsol, no_external_wrenches);
-  VectorX<T> u_;  // The plant-centric input vector of actuation values.
-  u_.resize(4);
-  u_.fill(0.);
-  u_ << 1.6, 1.5, 1.6, 1.51;
-
-  VectorX<T> state = context.get_continuous_state_vector().CopyToVector();
-
-
-  // Extract orientation and angular velocities.
-  Vector3<T> rpy = state.segment(3, 3);
-
-  // Convert orientation to a rotation matrix.
-  Matrix3<T> R = math::rpy2rotmat(rpy);
-
-  Matrix3<T> Z;
-  Z.fill(0.0);
-  Matrix6<T> RR;
-  RR << R, Z, Z, R;
-  std::cout << "RR" << std::endl <<RR << std::endl;
-
 
   std::cout << "right_hand_side:" << std::endl << right_hand_side << std::endl;
   // TODO(robinsch): Correctly compute input forces here
-  if (num_actuators > 0) right_hand_side += RR * tree_.B * u_;
-  std::cout << "tree_.B" << std::endl << tree_.B << std::endl;
-  std::cout << "B * u" << std::endl << tree_.B * u_ << std::endl;
-
-  /*
-  Vector3<T> F_xyz (4, 0, 0);
-  Vector3<T> F_xyz_rot = R * F_xyz;
-  Vector3<T> M_xyz;
-
-  if (-0.01 < static_cast<T>(rpy[1]) &&  static_cast<T>(rpy[1]) < 0.01) {
-    M_xyz << 0, 3.3, 0;
-  } else {
-    M_xyz << 0, 0, 0;
-  }
-
-  Vector6<T> F;
-  F << F_xyz_rot, M_xyz;
-  F(2) += 4.905;
-
-  //VectorX<T> F;  // The plant-centric input vector of actuation values.
-  //F.resize(6);
-  //F.fill(0.);
-
-  */
-
   //right_hand_side += F;
+  if (num_inputs > 0) right_hand_side += ThrustsToSpatialForce(context,
+                                                               u_thrusts);
   // Applies joint limit forces.
   // TODO(amcastro-tri): Maybe move to
   // RBT::ComputeGeneralizedJointLimitForces(C)?
@@ -167,7 +124,7 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   }
 
   auto vdot_cholesky = lltOfH.solve(right_hand_side);
-
+  std::cout << "Cholesky cols and rows:" << std::endl;
   std::cout << vdot_cholesky.cols() << std::endl;
   std::cout << vdot_cholesky.rows() << std::endl;
 
@@ -297,6 +254,35 @@ VectorX<T> RigidBodyPlantAutodiff<T>::EvaluateActuatorInputs(
     const Context<T>& context) const {
   VectorX<T> u = this->EvalVectorInput(context, 0)->get_value();
   return u;
+}
+
+template <typename T>
+VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
+    const Context<T>& context,
+    const VectorX<T>& u_thrusts) const {
+
+  VectorX<T> state = context.get_continuous_state_vector().CopyToVector();
+  std::cout << "state:" << std::endl << state << std::endl;
+
+  // Extract orientation and angular velocities.
+  Vector3<T> rpy = state.segment(3, 3);
+
+  // Convert orientation to a rotation matrix.
+  Matrix3<T> R = math::rpy2rotmat(rpy);
+
+  // TODO(robinsch): Make matrix size dependent on number of states
+  Matrix3<T> Z;
+  Z.fill(0.0);
+  Matrix6<T> RR;
+  RR << R, Z, Z, R;
+  std::cout << "RR" << std::endl <<RR << std::endl;
+  std::cout << "tree_.B" << std::endl << tree_.B << std::endl;
+  std::cout << "B * u" << std::endl << tree_.B * u_thrusts << std::endl;
+
+
+  VectorX<T> F = RR * tree_.B * u_thrusts;
+
+  return F;
 }
 
 // TODO(liang.fok) Eliminate the re-computation of `xdot` once it is cached.
