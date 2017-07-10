@@ -270,17 +270,38 @@ VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
   // Convert orientation to a rotation matrix.
   Matrix3<T> R = math::rpy2rotmat(rpy);
 
-  // TODO(robinsch): Make matrix size dependent on number of states
-  Matrix3<T> Z;
-  Z.fill(0.0);
-  Matrix6<T> RR;
-  RR << R, Z, Z, R;
+  const int nv = tree_.B.rows();
+  MatrixX<T> RR(6, nv);
+  // Make a correctly templated copy of the matrix B to avoid some issues.
+  MatrixX<T> B_copy = tree_.B;
+  RR.fill(0.0);
+
+  // Add rotation matrix for the x-, y- and z-forces.
+  RR.block(0, 0, 3, 3) = R;
+  std::cout << RR << std::endl;
+  // Add rotation matrix for the x-, y- and z-torques.
+  RR.block(3, 3, 3, 3) = R;
+
   std::cout << "RR" << std::endl <<RR << std::endl;
   std::cout << "tree_.B" << std::endl << tree_.B << std::endl;
   std::cout << "B * u" << std::endl << tree_.B * u_thrusts << std::endl;
 
+  // B_[nv, num_inputs] -> 6x4 or 8x4
+  // u_[num_inputs, 1]  -> 4x1
+  // B * u =            -> 6x1 or 8x1
+  // RṚ -> 6x6 or 6x8   -> [6 x nv]
 
-  VectorX<T> F = RR * tree_.B * u_thrusts;
+  // RR =
+  /*
+  r r r 0 0 0 0 0
+  r r r 0 0 0 0 0
+  r r r 0 0 0 0 0
+  0 0 0 r r r 0 0
+  0 0 0 r r r 0 0
+  0 0 0 r r r 0 0
+  */
+
+  VectorX<T> F = RR * B_copy * u_thrusts;
 
   return F;
 }
