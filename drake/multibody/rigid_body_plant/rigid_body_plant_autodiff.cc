@@ -83,8 +83,8 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   std::cout << "right_hand_side:" << std::endl << right_hand_side << std::endl;
   // TODO(robinsch): Correctly compute input forces here
   //right_hand_side += F;
-  if (num_inputs > 0) right_hand_side += ThrustsToSpatialForce(context,
-                                                               u_thrusts);
+  if (num_inputs > 0) right_hand_side += ThrustsToSpatialForce(u_thrusts,
+                                                               kinsol);
   // Applies joint limit forces.
   // TODO(amcastro-tri): Maybe move to
   // RBT::ComputeGeneralizedJointLimitForces(C)?
@@ -144,11 +144,10 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   std::cout << "derivatives:" << std::endl;
   std::cout << derivatives->CopyToVector() << std::endl;
 }
-template <typename T>
-void RigidBodyPlantAutodiff<T>::LinearizeAB(const Eigen::VectorXd& x0,
+template <>
+void RigidBodyPlantAutodiff<AutoDiffXd>::LinearizeAB(const Eigen::VectorXd& x0,
     const Eigen::VectorXd& u0) {
-//  return;
-
+  typedef AutoDiffXd T;
   //DRAKE_DEMAND(context.is_stateless() || context.has_only_continuous_state());
   // TODO(russt): handle the discrete time case
 
@@ -258,50 +257,36 @@ VectorX<T> RigidBodyPlantAutodiff<T>::EvaluateActuatorInputs(
 
 template <typename T>
 VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
-    const Context<T>& context,
-    const VectorX<T>& u_thrusts) const {
+    const VectorX<T>& u_thrusts,
+    const KinematicsCache<T>& kinsol) const {
 
-  VectorX<T> state = context.get_continuous_state_vector().CopyToVector();
-  std::cout << "state:" << std::endl << state << std::endl;
+  std::cout << "u_thrusts:" << std::endl << u_thrusts << std::endl;
 
-  // Extract orientation and angular velocities.
-  Vector3<T> rpy = state.segment(3, 3);
-
-  // Convert orientation to a rotation matrix.
-  Matrix3<T> R = math::rpy2rotmat(rpy);
-
-  const int nv = tree_.B.rows();
-  MatrixX<T> RR(6, nv);
   // Make a correctly templated copy of the matrix B to avoid some issues.
   MatrixX<T> B_copy = tree_.B;
-  RR.fill(0.0);
 
-  // Add rotation matrix for the x-, y- and z-forces.
-  RR.block(0, 0, 3, 3) = R;
-  std::cout << RR << std::endl;
-  // Add rotation matrix for the x-, y- and z-torques.
-  RR.block(3, 3, 3, 3) = R;
-
-  std::cout << "RR" << std::endl <<RR << std::endl;
   std::cout << "tree_.B" << std::endl << tree_.B << std::endl;
-  std::cout << "B * u" << std::endl << tree_.B * u_thrusts << std::endl;
+  std::cout << "F = B * u" << std::endl << tree_.B * u_thrusts << std::endl;
 
-  // B_[nv, num_inputs] -> 6x4 or 8x4
+  auto J = tree_.geometricJacobian(kinsol, 0, 1, 1, false);
+  auto J011t = tree_.geometricJacobian(kinsol, 0, 1, 1, true);
+
+  bool thesame = J.isApprox(J011t);
+  if (!thesame) {
+    std::cout << "Not the same Jacobians\n";
+    std::cout << "J011f\n" << J << "\n";
+    std::cout << "J011t\n" << J011t << "\n";
+  };
+
+  // B_[nv, num_inputs] -> 6x4
   // u_[num_inputs, 1]  -> 4x1
-  // B * u =            -> 6x1 or 8x1
-  // RṚ -> 6x6 or 6x8   -> [6 x nv]
+  // B * u =            -> 6x1
+  // J   [6, ndof]      -> 6x6 or 6x8
+  // J^T [ndof, 6]      -> 6x6 or 8x6
+  // F   [ndof, 1]      -> 6x1 or 8x1
 
-  // RR =
-  /*
-  r r r 0 0 0 0 0
-  r r r 0 0 0 0 0
-  r r r 0 0 0 0 0
-  0 0 0 r r r 0 0
-  0 0 0 r r r 0 0
-  0 0 0 r r r 0 0
-  */
-
-  VectorX<T> F = RR * B_copy * u_thrusts;
+  VectorX<T> F = J.transpose() * B_copy * u_thrusts;
+  std::cout << "F\n" << F << "\n";
 
   return F;
 }
@@ -315,7 +300,7 @@ void RigidBodyPlantAutodiff<T>::PrintValue(const int& value) {
 }
 
 // Explicitly instantiates on the most common scalar types.
-//template class RigidBodyPlantAutodiff<double>;
+template class RigidBodyPlantAutodiff<double>;
 template class RigidBodyPlantAutodiff<AutoDiffXd>;
 
 }  // namespace systems
