@@ -12,6 +12,7 @@
 #include "drake/systems/framework/diagram.h"
 #include "drake/systems/framework/diagram_builder.h"
 #include "drake/systems/primitives/constant_vector_source.h"
+#include "drake/multibody/rigid_body_plant/rigid_body_plant_autodiff.h"
 
 // The following sequence of tests compares the behaviour of two kinds of
 // plants : (i) A GenericQuadrotor created from the QuadrotorPlant, and
@@ -97,6 +98,64 @@ class RigidBodyQuadrotor: public systems::Diagram<T> {
  private:
   systems::RigidBodyPlant<T> *plant_{};
 };
+//  A Quadrotor as a RigidBodyPlant that is created from a model
+// specified in a URDF file.
+template<typename T>
+class RigidBodyAutoDiffQuadrotor: public systems::Diagram<T> {
+ public:
+  RigidBodyAutoDiffQuadrotor() {
+    this->set_name("QuadrotorAD");
+
+    auto tree = std::make_unique<RigidBodyTree<T>>();
+
+    drake::parsers::urdf::AddModelInstanceFromUrdfFile(
+        drake::GetDrakePath() + "/examples/Quadrotor/quadrotor.urdf",
+        multibody::joints::kRollPitchYaw, nullptr, tree.get());
+
+    // TODO(robinsch): Define B matrix as part of RBPad
+    const double kM = 0.0245;
+    const double kF = 1;
+    const double L = 0.175;
+
+    tree->B.resize(6, 4);
+    tree->B.fill(0.0);
+    // Fill the actuator to body mapping matrix.
+    tree->B.block(0, 0, 3, 4) << 0.0, L*kF, 0.0, -L*kF,
+                                 -L*kF, 0.0, L*kF, 0.0,
+                                 kM, -kM, kM, -kM;
+    tree->B.block(5, 0, 1, 4) << kF, kF, kF, kF;
+
+    systems::DiagramBuilder<T> builder;
+
+    plant_ =
+        builder.template AddSystem<systems::RigidBodyPlantAutodiff<T>>(std::move(tree));
+    plant_->set_name("plantAD");
+
+    const int num_inputs = (plant_->get_num_input_ports() > 0)
+                           ? plant_->get_input_port(0).size()
+                           : 0;
+
+    VectorX<T> hover_input(num_inputs);
+    hover_input.setZero();
+    systems::ConstantVectorSource<T>* source =
+        builder.template AddSystem<systems::ConstantVectorSource<T>>(
+            hover_input);
+    source->set_name("hover_input");
+
+    builder.Connect(source->get_output_port(), plant_->get_input_port(0));
+
+    builder.BuildInto(this);
+  }
+
+  void SetState(systems::Context<T> *context, VectorX<T> x) const {
+    systems::Context<T> *plant_context =
+        this->GetMutableSubsystemContext(context, plant_);
+    plant_->set_state_vector(plant_context, x);
+  }
+
+ private:
+  systems::RigidBodyPlant<T> *plant_{};
+};
 
 //  Combines test setup for both kinds of plants:
 //  ge_model_:  GenericQuadrotor
@@ -106,39 +165,49 @@ class QuadrotorTest: public ::testing::Test {
   QuadrotorTest() {
     ge_model_ = std::make_unique<GenericQuadrotor<double>>();
     rb_model_ = std::make_unique<RigidBodyQuadrotor<double>>();
+    ad_model_ = std::make_unique<RigidBodyAutoDiffQuadrotor<double>>();
 
     ge_simulator_ = std::make_unique<systems::Simulator<double>>(*ge_model_);
     rb_simulator_ = std::make_unique<systems::Simulator<double>>(*rb_model_);
+    ad_simulator_ = std::make_unique<systems::Simulator<double>>(*ad_model_);
 
     ge_derivatives_ = ge_model_->AllocateTimeDerivatives();
     rb_derivatives_ = rb_model_->AllocateTimeDerivatives();
+    ad_derivatives_ = ad_model_->AllocateTimeDerivatives();
   }
 
   void SetUp() override {
     ge_context_ = ge_model_->CreateDefaultContext();
     rb_context_ = rb_model_->CreateDefaultContext();
+    ad_context_ = ad_model_->CreateDefaultContext();
 
     ge_model_->SetState(ge_context_.get(), x0_);
     rb_model_->SetState(rb_context_.get(), x0_);
+    ad_model_->SetState(ad_context_.get(), x0_);
 
     ge_simulator_->Initialize();
     rb_simulator_->Initialize();
+    ad_simulator_->Initialize();
   }
 
   void SetState(const VectorX<double> x0) {
     ge_context_ = ge_model_->CreateDefaultContext();
     rb_context_ = rb_model_->CreateDefaultContext();
+    ad_context_ = ad_model_->CreateDefaultContext();
 
     ge_model_->SetState(ge_context_.get(), x0);
     rb_model_->SetState(rb_context_.get(), x0);
+    ad_model_->SetState(ad_context_.get(), x0);
   }
 
   void Simulate(const double t) {
     ge_simulator_->Initialize();
     rb_simulator_->Initialize();
+    ad_simulator_->Initialize();
 
     ge_simulator_->StepTo(t);
     rb_simulator_->StepTo(t);
+    ad_simulator_->StepTo(t);
   }
 
   VectorX<double> GetState(systems::Simulator<double> *simulator) {
@@ -156,9 +225,14 @@ class QuadrotorTest: public ::testing::Test {
     VectorX<double> rb_state = rb_simulator_->get_context()
         .get_continuous_state_vector()
         .CopyToVector();
+    VectorX<double> ad_state = ad_simulator_->get_context()
+        .get_continuous_state_vector()
+        .CopyToVector();
     double tol = 1e-10;
     EXPECT_TRUE(
         CompareMatrices(my_state, rb_state, tol, MatrixCompareType::absolute));
+    EXPECT_TRUE(
+        CompareMatrices(my_state, ad_state, tol, MatrixCompareType::absolute));
   }
 
  protected:
@@ -166,12 +240,15 @@ class QuadrotorTest: public ::testing::Test {
 
   std::unique_ptr<GenericQuadrotor<double>> ge_model_;
   std::unique_ptr<RigidBodyQuadrotor<double>> rb_model_;
+  std::unique_ptr<RigidBodyAutoDiffQuadrotor<double>> ad_model_;
 
-  std::unique_ptr<systems::Simulator<double>> ge_simulator_, rb_simulator_;
+  std::unique_ptr<systems::Simulator<double>> ge_simulator_, rb_simulator_,
+      ad_simulator_;
 
-  std::unique_ptr<systems::Context<double>> ge_context_, rb_context_;
+  std::unique_ptr<systems::Context<double>> ge_context_, rb_context_,
+      ad_context_;
   std::unique_ptr<systems::ContinuousState<double>> ge_derivatives_,
-      rb_derivatives_;
+      rb_derivatives_, ad_derivatives_;
 };
 
 //  Test comparing the computation of derivatives for a fixed state.
@@ -181,11 +258,16 @@ TEST_F(QuadrotorTest, derivatives) {
 
   ge_model_->CalcTimeDerivatives(*ge_context_, ge_derivatives_.get());
   rb_model_->CalcTimeDerivatives(*rb_context_, rb_derivatives_.get());
+  ad_model_->CalcTimeDerivatives(*ad_context_, ad_derivatives_.get());
 
   VectorX<double> my_derivative_vector = ge_derivatives_->CopyToVector();
   VectorX<double> rb_derivative_vector = rb_derivatives_->CopyToVector();
+  VectorX<double> ad_derivative_vector = ad_derivatives_->CopyToVector();
 
   EXPECT_TRUE(CompareMatrices(my_derivative_vector, rb_derivative_vector,
+                              1e-10 /* tolerance */,
+                              MatrixCompareType::absolute));
+  EXPECT_TRUE(CompareMatrices(my_derivative_vector, ad_derivative_vector,
                               1e-10 /* tolerance */,
                               MatrixCompareType::absolute));
 }
