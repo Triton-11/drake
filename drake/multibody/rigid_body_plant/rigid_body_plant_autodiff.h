@@ -45,6 +45,8 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
 
   void LinearizeAB(const Eigen::VectorXd& x0, const Eigen::VectorXd& u0);
 
+  static void SetupInputMatrixB(Eigen::MatrixXd& B);
+
  protected:
   // RigidBodyPlant<T> overrides.
   void DoCalcTimeDerivatives(const Context<T>& context,
@@ -65,14 +67,6 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
 
   VectorX<T> ThrustsToSpatialForce(const VectorX<T>& u_thrusts,
                                    const KinematicsCache<T>& kinsol) const;
-
-  // Publishes `xdot`, the derivative of `x`, which is this system's generalized
-  // state vector. This vector contains the derivatives of the RigidBodyTree's
-  // joint's positions and velocities. Thus, the units are velocities and
-  // accelerations.
-  void PrintValue(const int& value);
-  //void DoPublish(const Context<T>& context) const override;
-
 };
 
 }  // namespace systems

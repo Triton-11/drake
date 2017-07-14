@@ -65,7 +65,6 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   // reused.
   auto kinsol = tree_.doKinematics(q, v);
 
-
   auto H = tree_.massMatrix(kinsol);  // Alternatively: MatrixX<T> H
 
   // There are no external wrenches, but it is a required argument in
@@ -271,12 +270,12 @@ VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
   auto J = tree_.geometricJacobian(kinsol, 0, 1, 1, false);
   auto J011t = tree_.geometricJacobian(kinsol, 0, 1, 1, true);
 
-  bool thesame = J.isApprox(J011t);
-  if (!thesame) {
+  if (J.rows() != J011t.rows() || J.cols() != J011t.cols() ||
+      !J.isApprox(J011t)) {
     std::cout << "Not the same Jacobians\n";
     std::cout << "J011f\n" << J << "\n";
     std::cout << "J011t\n" << J011t << "\n";
-  };
+  }
 
   // B_[nv, num_inputs] -> 6x4
   // u_[num_inputs, 1]  -> 4x1
@@ -291,12 +290,19 @@ VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
   return F;
 }
 
-// TODO(liang.fok) Eliminate the re-computation of `xdot` once it is cached.
-// Ideally, switch to outputting the derivatives in an output port. This can
-// only be done once #2890 is resolved.
 template <typename T>
-void RigidBodyPlantAutodiff<T>::PrintValue(const int& value) {
-  std::cout << "value" << value << std::endl;
+void RigidBodyPlantAutodiff<T>::SetupInputMatrixB(Eigen::MatrixXd& B) {
+  const double kM = 0.0245;
+  const double kF = 1;
+  const double L = 0.175;
+
+  B.resize(6, 4);
+  B.fill(0.0);
+  // Fill the actuator to body mapping matrix.
+  B.block(0, 0, 3, 4) << 0.0, L*kF, 0.0, -L*kF,
+                         -L*kF, 0.0, L*kF, 0.0,
+                         kM, -kM, kM, -kM;
+  B.block(5, 0, 1, 4) << kF, kF, kF, kF;
 }
 
 // Explicitly instantiates on the most common scalar types.
