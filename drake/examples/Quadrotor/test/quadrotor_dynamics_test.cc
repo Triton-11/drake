@@ -7,13 +7,13 @@
 #include "drake/examples/Quadrotor/quadrotor_plant.h"
 #include "drake/math/quaternion.h"
 #include "drake/multibody/parsers/urdf_parser.h"
+#include "drake/multibody/rigid_body_plant/rigid_body_plant_autodiff.h"
 #include "drake/multibody/rigid_body_plant/rigid_body_plant.h"
 #include "drake/multibody/rigid_body_tree_construction.h"
 #include "drake/systems/analysis/simulator.h"
 #include "drake/systems/framework/diagram.h"
 #include "drake/systems/framework/diagram_builder.h"
 #include "drake/systems/primitives/constant_vector_source.h"
-#include "drake/multibody/rigid_body_plant/rigid_body_plant_autodiff.h"
 
 // The following sequence of tests compares the behaviour of two kinds of
 // plants : (i) A GenericQuadrotor created from the QuadrotorPlant, and
@@ -113,18 +113,9 @@ class RigidBodyAutoDiffRPYQuadrotor: public systems::Diagram<T> {
         drake::GetDrakePath() + "/examples/Quadrotor/quadrotor.urdf",
         multibody::joints::kRollPitchYaw, nullptr, tree.get());
 
-    // TODO(robinsch): Define B matrix as part of RBPad
-    const double kM = 0.0245;
-    const double kF = 1;
-    const double L = 0.175;
+    systems::RigidBodyPlantAutodiff<T>::SetupInputMatrixB(tree->B);
 
-    tree->B.resize(6, 4);
-    tree->B.fill(0.0);
-    // Fill the actuator to body mapping matrix.
-    tree->B.block(0, 0, 3, 4) << 0.0, L*kF, 0.0, -L*kF,
-                                 -L*kF, 0.0, L*kF, 0.0,
-                                 kM, -kM, kM, -kM;
-    tree->B.block(5, 0, 1, 4) << kF, kF, kF, kF;
+    // TODO(robinsch): Define B matrix as part of RBPad
 
     systems::DiagramBuilder<T> builder;
 
@@ -171,18 +162,9 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
         drake::GetDrakePath() + "/examples/Quadrotor/quadrotor.urdf",
         multibody::joints::kQuaternion, nullptr, tree.get());
 
-    // TODO(robinsch): Define B matrix as part of RBPad
-    const double kM = 0.0245;
-    const double kF = 1;
-    const double L = 0.175;
+    systems::RigidBodyPlantAutodiff<T>::SetupInputMatrixB(tree->B);
 
-    tree->B.resize(6, 4);
-    tree->B.fill(0.0);
-    // Fill the actuator to body mapping matrix.
-    tree->B.block(0, 0, 3, 4) << 0.0, L*kF, 0.0, -L*kF,
-                                 -L*kF, 0.0, L*kF, 0.0,
-                                 kM, -kM, kM, -kM;
-    tree->B.block(5, 0, 1, 4) << kF, kF, kF, kF;
+    // TODO(robinsch): Define B matrix as part of RBPad
 
     systems::DiagramBuilder<T> builder;
 
@@ -370,15 +352,13 @@ TEST_F(QuadrotorTest, derivatives) {
   VectorX<double> my_derivative_vector = ge_derivatives_->CopyToVector();
   VectorX<double> rb_derivative_vector = rb_derivatives_->CopyToVector();
   VectorX<double> ad_derivative_vector = ad_derivatives_->CopyToVector();
-  VectorX<double> qa_derivative_vector = qa_derivatives_->CopyToVector();
+
+  // qa_derivatives conversion to rpy is missing in order to compare correctly.
 
   EXPECT_TRUE(CompareMatrices(my_derivative_vector, rb_derivative_vector,
                               1e-10 /* tolerance */,
                               MatrixCompareType::absolute));
   EXPECT_TRUE(CompareMatrices(my_derivative_vector, ad_derivative_vector,
-                              1e-10 /* tolerance */,
-                              MatrixCompareType::absolute));
-  EXPECT_TRUE(CompareMatrices(my_derivative_vector, qa_derivative_vector,
                               1e-10 /* tolerance */,
                               MatrixCompareType::absolute));
 }
