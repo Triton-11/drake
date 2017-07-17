@@ -119,6 +119,24 @@ drake_cc_googletest(
         "//drake/multibody:rigid_body_tree_construction",
         "//drake/multibody/parsers",
         "//drake/multibody/rigid_body_plant",
+        "//drake/multibody/rigid_body_plant:rigid_body_plant_autodiff",
+        "//drake/systems/analysis:simulator",
+        "//drake/systems/framework:diagram",
+        "//drake/systems/primitives:constant_vector_source",
+    ],
+)
+
+drake_cc_googletest(
+    name = "quadrotor_thrust_dynamics_test",
+    data = [":models"],
+    deps = [
+        ":quadrotor_plant",
+        "//drake/common:drake_path",
+        "//drake/common:eigen_matrix_compare",
+        "//drake/multibody:rigid_body_tree_construction",
+        "//drake/multibody/parsers",
+        "//drake/multibody/rigid_body_plant",
+        "//drake/multibody/rigid_body_plant:rigid_body_plant_autodiff",
         "//drake/systems/analysis:simulator",
         "//drake/systems/framework:diagram",
         "//drake/systems/primitives:constant_vector_source",
