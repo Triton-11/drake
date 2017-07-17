@@ -189,6 +189,7 @@ drake_cc_googletest(
     ],
     deps = [
         ":rigid_body_plant",
+        ":rigid_body_plant_autodiff",
         "//drake/common:drake_path",
         "//drake/common:eigen_matrix_compare",
         "//drake/multibody/parsers",

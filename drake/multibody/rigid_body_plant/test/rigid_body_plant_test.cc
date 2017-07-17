@@ -1,4 +1,5 @@
 #include "drake/multibody/rigid_body_plant/rigid_body_plant.h"
+#include "drake/multibody/rigid_body_plant/rigid_body_plant_autodiff.h"
 
 #include <iostream>
 #include <memory>
@@ -590,6 +591,63 @@ GTEST_TEST(rigid_body_plant_test, BasicTimeSteppingTest) {
   xn << qn, vn;
 
   EXPECT_TRUE(CompareMatrices(updates->get_vector(0)->CopyToVector(), xn));
+}
+
+GTEST_TEST(rigid_body_plant_test, BasicTimeSteppingTestAutoDiff) {
+  auto tree_ptr = make_unique<RigidBodyTree<double>>();
+  drake::parsers::urdf::AddModelInstanceFromUrdfFile(
+      drake::GetDrakePath() + "/multibody/models/box.urdf",
+      drake::multibody::joints::kQuaternion, nullptr /* weld to frame */,
+      tree_ptr.get());
+
+  const double timestep = 0.1;
+  RigidBodyPlantAutodiff<AutoDiffXd> continuous_plant(tree_ptr->ToAutoDiffXd());
+  RigidBodyPlant<double> time_stepping_plant(move(tree_ptr), timestep);
+
+  auto continuous_context = continuous_plant.AllocateContext();
+  continuous_plant.SetDefaults(continuous_context.get());
+
+  auto time_stepping_context = time_stepping_plant.AllocateContext();
+  time_stepping_plant.SetDefaults(time_stepping_context.get());
+
+  // Check that the time-stepping model has the same states as the continuous,
+  // but as discrete state.
+  EXPECT_TRUE(continuous_context->has_only_continuous_state());
+  EXPECT_TRUE(time_stepping_context->has_only_discrete_state());
+  EXPECT_EQ(continuous_context->get_continuous_state()->size(),
+            time_stepping_context->get_discrete_state(0)->size());
+
+  // Check that the dynamics of the time-stepping model match the
+  // (backwards-)Euler approximation of the continuous time dynamics.
+  auto derivatives = continuous_plant.AllocateTimeDerivatives();
+  continuous_plant.CalcTimeDerivatives(*continuous_context, derivatives.get());
+  auto updates = time_stepping_plant.AllocateDiscreteVariables();
+  DiscreteEvent<double> update_event;
+  update_event.action = DiscreteEvent<double>::kDiscreteUpdateAction;
+  time_stepping_plant.CalcDiscreteVariableUpdates(*time_stepping_context,
+                                                  update_event, updates.get());
+
+  const VectorX<AutoDiffXd> x =
+      continuous_context->get_continuous_state()->CopyToVector();
+
+  const VectorX<AutoDiffXd> q = continuous_context->get_continuous_state()
+                         ->get_generalized_position()
+                         .CopyToVector();
+  const VectorX<AutoDiffXd> v = continuous_context->get_continuous_state()
+                         ->get_generalized_velocity()
+                         .CopyToVector();
+
+  const VectorX<AutoDiffXd> vn =
+      v + timestep * derivatives->get_generalized_velocity().CopyToVector();
+
+  auto kinsol = continuous_plant.get_rigid_body_tree().doKinematics(q, v);
+  const VectorX<AutoDiffXd> qn =
+      q +
+      timestep *
+          continuous_plant.get_rigid_body_tree().transformVelocityToQDot(kinsol,
+                                                                         vn);
+  VectorX<AutoDiffXd> xn(qn.rows() + vn.rows());
+  xn << qn, vn;
 }
 
 }  // namespace
