@@ -17,7 +17,7 @@ RigidBodyPlantAutodiff<T>::RigidBodyPlantAutodiff(std::unique_ptr<const RigidBod
                                   double timestep)
     : RigidBodyPlant<T>::RigidBodyPlant(move(tree)),
       tree_(this->get_rigid_body_tree()), timestep_(timestep) {
-  this->DeclareInputPort(systems::kVectorValued, kInputDimension);
+  this->DeclareInputPort(systems::kVectorValued, tree_.B.cols());
   /*state_output_port_index_ =
       this->DeclareOutputPort(kVectorValued, get_num_states()).get_index();
   ExportModelInstanceCentricPorts();
@@ -40,8 +40,16 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   //              "Only support templating on double for now");
   if (timestep_ > 0.0) return;
 
-  // TODO(robinsch): Proper Actuator inputs with tree
-  VectorX<T> u_thrusts = EvaluateActuatorInputs(context);
+  const int nq = this->get_num_positions();
+  const int nv = this->get_num_velocities();
+  const int num_inputs = (this->get_num_input_ports() > 0)
+                         ? this->get_input_port(0).size()
+                         : 0;
+
+  VectorX<T> u_thrusts;
+  if (num_inputs > 0) {
+    u_thrusts = EvaluateActuatorInputs(context);
+  }
 
   // TODO(amcastro-tri): provide nicer accessor to an Eigen representation for
   // LeafSystems.
@@ -49,11 +57,6 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
       dynamic_cast<const BasicVector<T>&>(context.get_continuous_state_vector())
           .get_value();
 
-  const int nq = this->get_num_positions();
-  const int nv = this->get_num_velocities();
-  const int num_inputs = (this->get_num_input_ports() > 0)
-                         ? this->get_input_port(0).size()
-                         : 0;
   // TODO(amcastro-tri): we would like to compile here with `auto` instead of
   // `VectorX<T>`. However it seems we get some sort of block from a block
   // which

@@ -56,9 +56,6 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
   //std::unique_ptr<const RigidBodyTree<T>> tree_;
   const RigidBodyTree<T>& tree_;
 
-  // Quadrotor inputs
-  int kInputDimension{4};
-
   // timestep == 0.0 implies continuous-time dynamics,
   // timestep > 0.0 implies a discrete-time dynamics approximation.
   const double timestep_{0.0};
