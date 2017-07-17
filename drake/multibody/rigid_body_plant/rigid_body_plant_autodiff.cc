@@ -54,7 +54,6 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   const int num_inputs = (this->get_num_input_ports() > 0)
                          ? this->get_input_port(0).size()
                          : 0;
-  std::cout << "num_inputs: " << num_inputs << std::endl;
   // TODO(amcastro-tri): we would like to compile here with `auto` instead of
   // `VectorX<T>`. However it seems we get some sort of block from a block
   // which
@@ -79,7 +78,6 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   VectorX<T> right_hand_side =
       -tree_.dynamicsBiasTerm(kinsol, no_external_wrenches);
 
-  std::cout << "right_hand_side:" << std::endl << right_hand_side << std::endl;
   // TODO(robinsch): Correctly compute input forces here
   //right_hand_side += F;
   if (num_inputs > 0) right_hand_side += ThrustsToSpatialForce(u_thrusts,
@@ -123,11 +121,9 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   }
 
   auto vdot_cholesky = lltOfH.solve(right_hand_side);
-  std::cout << "Cholesky cols and rows:" << std::endl;
-  std::cout << vdot_cholesky.cols() << std::endl;
-  std::cout << vdot_cholesky.rows() << std::endl;
-
-  std::cout << "The H Matrix: " << std::endl << H << std::endl;
+  // Debug print
+  //std::cout << "The H Matrix: " << std::endl << H << std::endl;
+  // Debugging
   /*
   std::cout << "To check H, let us compute L * L.transpose()" << std::endl;
   MatrixX<T> L = lltOfH.matrixL(); // retrieve factor L  in the decomposition
@@ -135,13 +131,12 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   std::cout << "vdot_cholesky" << std::endl << vdot_cholesky << std::endl;
    */
 
-
   VectorX<T> xdot(this->get_num_states());
   //const auto& vdot_value = prog.GetSolution(vdot);
   xdot << tree_.transformVelocityToQDot(kinsol, v), vdot_cholesky;
   derivatives->SetFromVector(xdot);
-  std::cout << "derivatives:" << std::endl;
-  std::cout << derivatives->CopyToVector() << std::endl;
+  //std::cout << "derivatives:" << std::endl;
+  //std::cout << derivatives->CopyToVector() << std::endl;
 }
 template <>
 void RigidBodyPlantAutodiff<AutoDiffXd>::LinearizeAB(const Eigen::VectorXd& x0,
@@ -259,22 +254,20 @@ VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
     const VectorX<T>& u_thrusts,
     const KinematicsCache<T>& kinsol) const {
 
-  std::cout << "u_thrusts:" << std::endl << u_thrusts << std::endl;
-
   // Make a correctly templated copy of the matrix B to avoid some issues.
   MatrixX<T> B_copy = tree_.B;
 
-  std::cout << "tree_.B" << std::endl << tree_.B << std::endl;
-  std::cout << "F = B * u" << std::endl << tree_.B * u_thrusts << std::endl;
+  //std::cout << "tree_.B" << std::endl << tree_.B << std::endl;
+  //std::cout << "F = B * u" << std::endl << tree_.B * u_thrusts << std::endl;
 
   auto J = tree_.geometricJacobian(kinsol, 0, 1, 1, false);
   auto J011t = tree_.geometricJacobian(kinsol, 0, 1, 1, true);
 
   if (J.rows() != J011t.rows() || J.cols() != J011t.cols() ||
       !J.isApprox(J011t)) {
-    std::cout << "Not the same Jacobians\n";
-    std::cout << "J011f\n" << J << "\n";
-    std::cout << "J011t\n" << J011t << "\n";
+    //std::cout << "Not the same Jacobians\n";
+    //std::cout << "J011f\n" << J << "\n";
+    //std::cout << "J011t\n" << J011t << "\n";
   }
 
   // B_[nv, num_inputs] -> 6x4
@@ -285,7 +278,7 @@ VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
   // F   [ndof, 1]      -> 6x1 or 8x1
 
   VectorX<T> F = J.transpose() * B_copy * u_thrusts;
-  std::cout << "F\n" << F << "\n";
+  //std::cout << "F\n" << F << "\n";
 
   return F;
 }
