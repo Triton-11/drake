@@ -15,9 +15,11 @@
 #include "drake/systems/framework/diagram_builder.h"
 #include "drake/systems/primitives/constant_vector_source.h"
 
-// The following sequence of tests compares the behaviour of two kinds of
+// The following sequence of tests compares the behaviour of three kinds of
 // plants : (i) A GenericQuadrotor created from the QuadrotorPlant, and
-// (ii) RigidBodyPlant created from parsing a corresponding model URDF file.
+// (ii) RigidBodyPlantAutodiff created from parsing a corresponding model URDF
+// with additional thrust inputs, an (iii) same as (ii) but with quaternion
+// floatingbase instead of euler angles.
 namespace drake {
 namespace examples {
 namespace quadrotor {
@@ -37,7 +39,7 @@ const double kSimulationDuration = 0.1;
 template<typename T>
 class GenericQuadrotor: public systems::Diagram<T> {
  public:
-  GenericQuadrotor() {
+  GenericQuadrotor(VectorX<T> input) {
     this->set_name("QuadrotorTest");
 
     systems::DiagramBuilder<T> builder;
@@ -45,12 +47,13 @@ class GenericQuadrotor: public systems::Diagram<T> {
     plant_ = builder.template AddSystem<QuadrotorPlant<T>>();
     plant_->set_name("plant");
 
-    VectorX<T> hover_input(plant_->get_input_size());
-    hover_input.setZero();
+    DRAKE_DEMAND(plant_->get_input_size() == input.size());
+    VectorX<T> test_input = input;
+
     systems::ConstantVectorSource<T>* source =
         builder.template AddSystem<systems::ConstantVectorSource<T>>(
-            hover_input);
-    source->set_name("hover_input");
+            test_input);
+    source->set_name("test_input");
 
     builder.Connect(source->get_output_port(), plant_->get_input_port(0));
 
@@ -67,12 +70,12 @@ class GenericQuadrotor: public systems::Diagram<T> {
   QuadrotorPlant<T> *plant_{};
 };
 
-//  A Quadrotor as a RigidBodyPlant that is created from a model
+// A Quadrotor as a RigidBodyPlantAutodiff that is created from a model
 // specified in a URDF file using a Euler angles.
 template<typename T>
 class RigidBodyAutoDiffRPYQuadrotor: public systems::Diagram<T> {
  public:
-  RigidBodyAutoDiffRPYQuadrotor() {
+  RigidBodyAutoDiffRPYQuadrotor(VectorX<T> input) {
     this->set_name("QuadrotorAD");
 
     auto tree = std::make_unique<RigidBodyTree<T>>();
@@ -83,24 +86,23 @@ class RigidBodyAutoDiffRPYQuadrotor: public systems::Diagram<T> {
 
     systems::RigidBodyPlantAutodiff<T>::SetupInputMatrixB(tree->B);
 
-    // TODO(robinsch): Define B matrix as part of RBPad
-
     systems::DiagramBuilder<T> builder;
 
-    plant_ =
-        builder.template AddSystem<systems::RigidBodyPlantAutodiff<T>>(std::move(tree));
+    plant_ = builder.template AddSystem<systems::RigidBodyPlantAutodiff<T>>(
+        std::move(tree));
     plant_->set_name("plantAD");
 
     const int num_inputs = (plant_->get_num_input_ports() > 0)
                            ? plant_->get_input_port(0).size()
                            : 0;
 
-    VectorX<T> hover_input(num_inputs);
-    hover_input.setZero();
+    DRAKE_DEMAND(num_inputs == input.size());
+    VectorX<T> test_input = input;
+
     systems::ConstantVectorSource<T>* source =
         builder.template AddSystem<systems::ConstantVectorSource<T>>(
-            hover_input);
-    source->set_name("hover_input");
+            test_input);
+    source->set_name("test_input");
 
     builder.Connect(source->get_output_port(), plant_->get_input_port(0));
 
@@ -116,12 +118,12 @@ class RigidBodyAutoDiffRPYQuadrotor: public systems::Diagram<T> {
  private:
   systems::RigidBodyPlant<T> *plant_{};
 };
-//  A Quadrotor as a RigidBodyPlant that is created from a model
+// A Quadrotor as a RigidBodyPlantAutodiff that is created from a model
 // specified in a URDF file using quaternions
 template<typename T>
 class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
  public:
-  RigidBodyAutoDiffQuaternionQuadrotor() {
+  RigidBodyAutoDiffQuaternionQuadrotor(VectorX<T> input) {
     this->set_name("QuadrotorADQuaternion");
 
     auto tree = std::make_unique<RigidBodyTree<T>>();
@@ -132,24 +134,23 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
 
     systems::RigidBodyPlantAutodiff<T>::SetupInputMatrixB(tree->B);
 
-    // TODO(robinsch): Define B matrix as part of RBPad
-
     systems::DiagramBuilder<T> builder;
 
-    plant_ =
-        builder.template AddSystem<systems::RigidBodyPlantAutodiff<T>>(std::move(tree));
+    plant_ = builder.template AddSystem<systems::RigidBodyPlantAutodiff<T>>(
+        std::move(tree));
     plant_->set_name("plantADQuaternion");
 
     const int num_inputs = (plant_->get_num_input_ports() > 0)
                            ? plant_->get_input_port(0).size()
                            : 0;
 
-    VectorX<T> hover_input(num_inputs);
-    hover_input.setZero();
+    DRAKE_DEMAND(num_inputs == input.size());
+    VectorX<T> test_input = input;
+
     systems::ConstantVectorSource<T>* source =
         builder.template AddSystem<systems::ConstantVectorSource<T>>(
-            hover_input);
-    source->set_name("hover_input");
+            test_input);
+    source->set_name("test_input");
 
     builder.Connect(source->get_output_port(), plant_->get_input_port(0));
 
@@ -167,7 +168,12 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
   systems::RigidBodyPlant<T> *plant_{};
 
   VectorX<double> ConvertRPYStateToQuaternion(const VectorX<double> StateRPY)
-    const {
+      const {
+    // RPY state vector:
+    // [translation, rpy, linear_velocity, angular_velocity]
+    // Quaternion state vector:
+    // [translation; quaternion; angular_velocity; linear_velocity]
+
     VectorX<double> StateQ = VectorX<double>::Zero(13);
 
     Vector4<double> angles_q = math::rpy2quat(
@@ -177,7 +183,6 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
         angles_q,
         StateRPY.segment(9, 3),
         StateRPY.segment(6, 3);
-    //[translation; quaternion; angular_velocity; linear_velocity]
     return StateQ;
   }
 };
@@ -187,9 +192,16 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
 class QuadrotorTest: public ::testing::Test {
  public:
   QuadrotorTest() {
-    ge_model_ = std::make_unique<GenericQuadrotor<double>>();
-    ad_model_ = std::make_unique<RigidBodyAutoDiffRPYQuadrotor<double>>();
-    qa_model_ = std::make_unique<RigidBodyAutoDiffQuaternionQuadrotor<double>>();
+
+    VectorX<double> test_input(4);
+    test_input.setZero();
+    test_input << 1.1, 0.8, 0.9, 1.2;
+
+    ge_model_ = std::make_unique<GenericQuadrotor<double>>(test_input);
+    ad_model_ = std::make_unique<RigidBodyAutoDiffRPYQuadrotor<double>>(
+        test_input);
+    qa_model_ = std::make_unique<RigidBodyAutoDiffQuaternionQuadrotor<double>>(
+        test_input);
 
     ge_simulator_ = std::make_unique<systems::Simulator<double>>(*ge_model_);
     ad_simulator_ = std::make_unique<systems::Simulator<double>>(*ad_model_);
@@ -240,7 +252,13 @@ class QuadrotorTest: public ::testing::Test {
         .CopyToVector();
   }
 
-  static VectorX<double> ConvertQuaternionStateToRPY(const VectorX<double> StateQ) {
+  static VectorX<double> ConvertQuaternionStateToRPY(
+      const VectorX<double> StateQ) {
+    // RPY state vector:
+    // [translation, rpy, linear_velocity, angular_velocity]
+    // Quaternion state vector:
+    // [translation; quaternion; angular_velocity; linear_velocity]
+
     VectorX<double> StateRPY = VectorX<double>::Zero(12);
 
     Vector3<double> angles_RPY = math::quat2rpy(
@@ -250,7 +268,6 @@ class QuadrotorTest: public ::testing::Test {
         angles_RPY,
         StateQ.segment(10, 3),
         StateQ.segment(7, 3);
-    //[translation; quaternion; angular_velocity; linear_velocity]
     return StateRPY;
   }
 
