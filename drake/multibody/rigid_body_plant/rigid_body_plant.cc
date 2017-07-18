@@ -484,7 +484,8 @@ void RigidBodyPlant<T>::DoCalcTimeDerivatives(
     }
   }
 
-  right_hand_side += ComputeContactForce(kinsol);
+  right_hand_side += compliant_contact_model_->ComputeContactForce(
+      *tree_.get(), kinsol);
 
   solvers::VectorXDecisionVariable position_force{};
 
@@ -531,7 +532,7 @@ void RigidBodyPlant<AutoDiffXd>::DoCalcTimeDerivatives(
 template <typename T>
 void RigidBodyPlant<T>::DoCalcDiscreteVariableUpdates(
     const drake::systems::Context<T>& context,
-    const std::vector<const drake::systems::DiscreteUpdateEvent<double>*>&,
+    const std::vector<const drake::systems::DiscreteUpdateEvent<T>*>&,
     drake::systems::DiscreteValues<T>* updates) const {
   static_assert(std::is_same<double, T>::value,
                 "Only support templating on double for now");
@@ -585,6 +586,7 @@ void RigidBodyPlant<T>::DoCalcDiscreteVariableUpdates(
 template <>
 void RigidBodyPlant<AutoDiffXd>::DoCalcDiscreteVariableUpdates(
     const drake::systems::Context<AutoDiffXd>& context,
+    const std::vector<const drake::systems::DiscreteUpdateEvent<AutoDiffXd>*>&,
     drake::systems::DiscreteValues<AutoDiffXd>* updates) const {
   return;
 }
@@ -712,15 +714,6 @@ void RigidBodyPlant<T>::CalcContactResultsOutput(
   auto kinsol = tree_->doKinematics(q, v);
 
   compliant_contact_model_->ComputeContactForce(*tree_.get(), kinsol, contacts);
-}
-
-template <>
-VectorX<AutoDiffXd> RigidBodyPlant<AutoDiffXd>::ComputeContactForce(
-    const KinematicsCache<AutoDiffXd>& kinsol,
-    ContactResults<AutoDiffXd>* contacts) const {
-  VectorX<AutoDiffXd> contact_force(kinsol.getV().rows(), 1);
-  contact_force.setZero();
-  return contact_force;
 }
 
 template <typename T>

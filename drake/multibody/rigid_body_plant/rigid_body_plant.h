@@ -331,7 +331,7 @@ class RigidBodyPlant : public LeafSystem<T> {
   void DoCalcTimeDerivatives(const Context<T>& context,
                              ContinuousState<T>* derivatives) const override;
   void DoCalcDiscreteVariableUpdates(const Context<T>& context,
-      const std::vector<const DiscreteUpdateEvent<double>*>&,
+      const std::vector<const DiscreteUpdateEvent<T>*>&,
       DiscreteValues<T>* updates) const override;
 
   bool DoHasDirectFeedthrough(const SparsityMatrix* sparsity, int input_port,

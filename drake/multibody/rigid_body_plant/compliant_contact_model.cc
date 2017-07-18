@@ -195,6 +195,16 @@ VectorX<T> CompliantContactModel<T>::ComputeContactForce(
   return contact_force;
 }
 
+template <>
+VectorX<AutoDiffXd> CompliantContactModel<AutoDiffXd>::ComputeContactForce(
+    const RigidBodyTree<AutoDiffXd>& tree,
+    const KinematicsCache<AutoDiffXd>& kinsol,
+    ContactResults<AutoDiffXd>* contacts) const {
+    VectorX<AutoDiffXd> contact_force(kinsol.getV().rows(), 1);
+  contact_force.setZero();
+  return contact_force;
+}
+
 template <typename T>
 T CompliantContactModel<T>::ComputeFrictionCoefficient(
     const T& v_tangent_BAc) const {
@@ -220,6 +230,7 @@ T CompliantContactModel<T>::step5(const T& x) {
 
 // Explicit instantiates on the most common scalar types
 template class CompliantContactModel<double>;
+template class CompliantContactModel<AutoDiffXd>;
 
 }  // namespace systems
 }  // namespace drake
