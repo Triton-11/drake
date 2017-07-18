@@ -7,7 +7,7 @@
 
 #include <gflags/gflags.h>
 
-#include "drake/common/drake_path.h"
+#include "drake/common/find_resource.h"
 #include "drake/common/is_approx_equal_abstol.h"
 #include "drake/examples/Quadrotor/quadrotor_plant.h"
 #include "drake/lcm/drake_lcm.h"
@@ -68,7 +68,7 @@ int do_main() {
   //tree->RigidBodyTreeAutoDiff::PrintValue();
 
   parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
-      GetDrakePath() + "/examples/Quadrotor/quadrotor.urdf",
+      FindResourceOrThrow("drake/examples/Quadrotor/quadrotor.urdf"),
       multibody::joints::kRollPitchYaw, treed.get());
 
   auto treead = treed->ToAutoDiffXd();

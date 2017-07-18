@@ -421,6 +421,7 @@ drake_cc_googletest(
         "//drake/automotive:models",
         "//drake/examples/Atlas:models",
         "//drake/examples/Pendulum:models",
+        "//drake/examples/Quadrotor:models",
         "//drake/examples/Valkyrie:models",
     ],
     deps = [

@@ -93,7 +93,7 @@ drake_cc_binary(
     ],
     deps = [
         ":quadrotor_plant",
-        "//drake/common:drake_path",
+        "//drake/common:find_resource",
         "//drake/common:is_approx_equal_abstol",
         "//drake/lcm",
         "//drake/multibody:rigid_body_tree",
@@ -131,8 +131,8 @@ drake_cc_googletest(
     data = [":models"],
     deps = [
         ":quadrotor_plant",
-        "//drake/common:drake_path",
         "//drake/common:eigen_matrix_compare",
+        "//drake/common:find_resource",
         "//drake/multibody:rigid_body_tree_construction",
         "//drake/multibody/parsers",
         "//drake/multibody/rigid_body_plant",

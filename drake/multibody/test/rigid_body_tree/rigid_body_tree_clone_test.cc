@@ -93,8 +93,8 @@ TEST_F(RigidBodyTreeCloneTest, CloneValkyrie) {
 
 // Tests RigidBodyTree::Clone() and RigidBodyTree::ToAutoDiffXd using Quadrotor.
 TEST_F(RigidBodyTreeCloneTest, CloneQuadrotor) {
-  std::string filename = drake::GetDrakePath() +
-      "/examples/Quadrotor/quadrotor.urdf";
+  std::string filename = FindResourceOrThrow(
+      "drake/examples/Quadrotor/quadrotor.urdf");
   AddModelInstanceFromUrdfFileToWorld(filename,
       multibody::joints::kRollPitchYaw, tree_.get());
   std::unique_ptr<RigidBodyTree<double>> clone = tree_->Clone();

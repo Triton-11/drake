@@ -10,6 +10,7 @@
 #include "drake/common/eigen_matrix_compare.h"
 #include "drake/common/eigen_types.h"
 #include "drake/common/find_resource.h"
+#include "drake/math/autodiff.h"
 #include "drake/math/roll_pitch_yaw.h"
 #include "drake/multibody/joints/prismatic_joint.h"
 #include "drake/multibody/joints/quaternion_floating_joint.h"
@@ -544,7 +545,7 @@ GTEST_TEST(rigid_body_plant_test, BasicTimeSteppingTest) {
 GTEST_TEST(rigid_body_plant_test, BasicTimeSteppingTestAutoDiff) {
   auto tree_ptr = make_unique<RigidBodyTree<double>>();
   drake::parsers::urdf::AddModelInstanceFromUrdfFile(
-      drake::GetDrakePath() + "/multibody/models/box.urdf",
+      FindResourceOrThrow("drake/multibody/models/box.urdf"),
       drake::multibody::joints::kQuaternion, nullptr /* weld to frame */,
       tree_ptr.get());
 
@@ -570,13 +571,14 @@ GTEST_TEST(rigid_body_plant_test, BasicTimeSteppingTestAutoDiff) {
   auto derivatives = continuous_plant.AllocateTimeDerivatives();
   continuous_plant.CalcTimeDerivatives(*continuous_context, derivatives.get());
   auto updates = time_stepping_plant.AllocateDiscreteVariables();
-  DiscreteEvent<double> update_event;
-  update_event.action = DiscreteEvent<double>::kDiscreteUpdateAction;
-  time_stepping_plant.CalcDiscreteVariableUpdates(*time_stepping_context,
-                                                  update_event, updates.get());
+  time_stepping_plant.CalcDiscreteVariableUpdates(
+      *time_stepping_context, updates.get());
 
   const VectorX<AutoDiffXd> x =
       continuous_context->get_continuous_state()->CopyToVector();
+  EXPECT_TRUE(CompareMatrices(
+      math::autoDiffToValueMatrix(x),
+      time_stepping_context->get_discrete_state(0)->CopyToVector()));
 
   const VectorX<AutoDiffXd> q = continuous_context->get_continuous_state()
                          ->get_generalized_position()
@@ -596,6 +598,9 @@ GTEST_TEST(rigid_body_plant_test, BasicTimeSteppingTestAutoDiff) {
                                                                          vn);
   VectorX<AutoDiffXd> xn(qn.rows() + vn.rows());
   xn << qn, vn;
+
+  EXPECT_TRUE(CompareMatrices(updates->get_vector(0)->CopyToVector(),
+                              math::autoDiffToValueMatrix(xn)));
 }
 
 }  // namespace

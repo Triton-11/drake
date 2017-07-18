@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include "drake/common/drake_path.h"
 #include "drake/common/eigen_matrix_compare.h"
+#include "drake/common/find_resource.h"
 #include "drake/examples/Quadrotor/quadrotor_plant.h"
 #include "drake/math/quaternion.h"
 #include "drake/multibody/parsers/urdf_parser.h"
@@ -61,9 +61,9 @@ class GenericQuadrotor: public systems::Diagram<T> {
   }
 
   void SetState(systems::Context<T> *context, VectorX<T> x) const {
-    systems::Context<T> *plant_context =
-        this->GetMutableSubsystemContext(context, plant_);
-    plant_->set_state(plant_context, x);
+    systems::Context<T>& plant_context =
+        this->GetMutableSubsystemContext(*plant_, context);
+    plant_->set_state(&plant_context, x);
   }
 
  private:
@@ -81,7 +81,7 @@ class RigidBodyAutoDiffRPYQuadrotor: public systems::Diagram<T> {
     auto tree = std::make_unique<RigidBodyTree<T>>();
 
     drake::parsers::urdf::AddModelInstanceFromUrdfFile(
-        drake::GetDrakePath() + "/examples/Quadrotor/quadrotor.urdf",
+        FindResourceOrThrow("drake/examples/Quadrotor/quadrotor.urdf"),
         multibody::joints::kRollPitchYaw, nullptr, tree.get());
 
     systems::RigidBodyPlantAutodiff<T>::SetupInputMatrixB(tree->B);
@@ -110,9 +110,9 @@ class RigidBodyAutoDiffRPYQuadrotor: public systems::Diagram<T> {
   }
 
   void SetState(systems::Context<T> *context, VectorX<T> x) const {
-    systems::Context<T> *plant_context =
-        this->GetMutableSubsystemContext(context, plant_);
-    plant_->set_state_vector(plant_context, x);
+    systems::Context<T>& plant_context =
+        this->GetMutableSubsystemContext(*plant_, context);
+    plant_->set_state_vector(&plant_context, x);
   }
 
  private:
@@ -129,7 +129,7 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
     auto tree = std::make_unique<RigidBodyTree<T>>();
 
     drake::parsers::urdf::AddModelInstanceFromUrdfFile(
-        drake::GetDrakePath() + "/examples/Quadrotor/quadrotor.urdf",
+        FindResourceOrThrow("drake/examples/Quadrotor/quadrotor.urdf"),
         multibody::joints::kQuaternion, nullptr, tree.get());
 
     systems::RigidBodyPlantAutodiff<T>::SetupInputMatrixB(tree->B);
@@ -158,10 +158,10 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
   }
 
   void SetState(systems::Context<T> *context, VectorX<T> x) const {
-    systems::Context<T> *plant_context =
-        this->GetMutableSubsystemContext(context, plant_);
+    systems::Context<T>& plant_context =
+        this->GetMutableSubsystemContext(*plant_, context);
     VectorX<T> x_quaternion = ConvertRPYStateToQuaternion(x);
-    plant_->set_state_vector(plant_context, x_quaternion);
+    plant_->set_state_vector(&plant_context, x_quaternion);
   }
 
  private:
