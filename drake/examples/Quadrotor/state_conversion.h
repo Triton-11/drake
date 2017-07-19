@@ -1,6 +1,3 @@
-/// @file
-/// Utilities for arithmetic on axis-angle rotations.
-
 #pragma once
 
 #include <iostream>

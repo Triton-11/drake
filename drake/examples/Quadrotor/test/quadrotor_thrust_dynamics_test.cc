@@ -323,7 +323,7 @@ TEST_F(QuadrotorTest, drop_from_initial_rotation) {
 // state.
 TEST_F(QuadrotorTest, drop_from_arbitrary_state) {
   VectorX<double> x0 = VectorX<double>::Zero(12);
-  x0 << 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6;  // Some initial state.
+  x0 << 1, 2, 3, 0.4, 0.5, 0.6, 1, 2, 3, 4, 5, 6;  // Some initial state.
   PassiveBehaviorTest(x0);
 }
 
