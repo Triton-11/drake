@@ -5,7 +5,7 @@
 #include "drake/common/eigen_matrix_compare.h"
 #include "drake/common/find_resource.h"
 #include "drake/examples/Quadrotor/quadrotor_plant.h"
-#include "drake/math/quaternion.h"
+#include "drake/examples/Quadrotor/state_conversion.h"
 #include "drake/multibody/parsers/urdf_parser.h"
 #include "drake/multibody/rigid_body_plant/rigid_body_plant_autodiff.h"
 #include "drake/multibody/rigid_body_plant/rigid_body_plant.h"
@@ -166,25 +166,6 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
 
  private:
   systems::RigidBodyPlant<T> *plant_{};
-
-  VectorX<double> ConvertRPYStateToQuaternion(const VectorX<double> StateRPY)
-      const {
-    // RPY state vector:
-    // [translation, rpy, linear_velocity, angular_velocity]
-    // Quaternion state vector:
-    // [translation; quaternion; angular_velocity; linear_velocity]
-
-    VectorX<double> StateQ = VectorX<double>::Zero(13);
-
-    Vector4<double> angles_q = math::rpy2quat(
-        static_cast<Vector3<double>>(StateRPY.segment(3, 3)));
-
-    StateQ << StateRPY.segment(0, 3),
-        angles_q,
-        StateRPY.segment(9, 3),
-        StateRPY.segment(6, 3);
-    return StateQ;
-  }
 };
 
 //  Combines test setup for both kinds of plants:
@@ -250,25 +231,6 @@ class QuadrotorTest: public ::testing::Test {
     return simulator->get_context()
         .get_continuous_state_vector()
         .CopyToVector();
-  }
-
-  static VectorX<double> ConvertQuaternionStateToRPY(
-      const VectorX<double> StateQ) {
-    // RPY state vector:
-    // [translation, rpy, linear_velocity, angular_velocity]
-    // Quaternion state vector:
-    // [translation; quaternion; angular_velocity; linear_velocity]
-
-    VectorX<double> StateRPY = VectorX<double>::Zero(12);
-
-    Vector3<double> angles_RPY = math::quat2rpy(
-        static_cast<Vector4<double>>(StateQ.segment(3, 4)));
-
-    StateRPY << StateQ.segment(0, 3),
-        angles_RPY,
-        StateQ.segment(10, 3),
-        StateQ.segment(7, 3);
-    return StateRPY;
   }
 
   void PassiveBehaviorTest(VectorX<double> x0) {

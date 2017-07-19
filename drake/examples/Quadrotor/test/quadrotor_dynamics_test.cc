@@ -5,7 +5,7 @@
 #include "drake/common/eigen_matrix_compare.h"
 #include "drake/common/find_resource.h"
 #include "drake/examples/Quadrotor/quadrotor_plant.h"
-#include "drake/math/quaternion.h"
+#include "drake/examples/Quadrotor/state_conversion.h"
 #include "drake/multibody/parsers/urdf_parser.h"
 #include "drake/multibody/rigid_body_plant/rigid_body_plant_autodiff.h"
 #include "drake/multibody/rigid_body_plant/rigid_body_plant.h"
@@ -198,20 +198,6 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
  private:
   systems::RigidBodyPlant<T> *plant_{};
 
-  VectorX<double> ConvertRPYStateToQuaternion(const VectorX<double> StateRPY)
-    const {
-    VectorX<double> StateQ = VectorX<double>::Zero(13);
-
-    Vector4<double> angles_q = math::rpy2quat(
-        static_cast<Vector3<double>>(StateRPY.segment(3, 3)));
-
-    StateQ << StateRPY.segment(0, 3),
-        angles_q,
-        StateRPY.segment(9, 3),
-        StateRPY.segment(6, 3);
-    //[translation; quaternion; angular_velocity; linear_velocity]
-    return StateQ;
-  }
 };
 
 //  Combines test setup for both kinds of plants:
@@ -285,20 +271,6 @@ class QuadrotorTest: public ::testing::Test {
     return simulator->get_context()
         .get_continuous_state_vector()
         .CopyToVector();
-  }
-
-  static VectorX<double> ConvertQuaternionStateToRPY(const VectorX<double> StateQ) {
-    VectorX<double> StateRPY = VectorX<double>::Zero(12);
-
-    Vector3<double> angles_RPY = math::quat2rpy(
-        static_cast<Vector4<double>>(StateQ.segment(3, 4)));
-
-    StateRPY << StateQ.segment(0, 3),
-        angles_RPY,
-        StateQ.segment(10, 3),
-        StateQ.segment(7, 3);
-    //[translation; quaternion; angular_velocity; linear_velocity]
-    return StateRPY;
   }
 
   void PassiveBehaviorTest(VectorX<double> x0) {
@@ -402,6 +374,17 @@ TEST_F(QuadrotorTest, drop_from_arbitrary_state) {
   VectorX<double> x0 = VectorX<double>::Zero(12);
   x0 << 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6;  // Some initial state.
   PassiveBehaviorTest(x0);
+}
+
+TEST_F(QuadrotorTest, state_conversion) {
+  VectorX<double> x0 = VectorX<double>::Ones(12);
+  x0 << 1, 2, 3, 0.4, 0.5, 0.6, 1, 2, 3, 4, 5, 6;  // Some initial state.
+  const VectorX<double> x1 = x0;
+  VectorX<double> x0_quaternion = ConvertRPYStateToQuaternion(x0);
+  VectorX<double> x0_rpy = ConvertQuaternionStateToRPY(x0_quaternion);
+  EXPECT_TRUE(CompareMatrices(x1, x0_rpy,
+                              1e-10 /* tolerance */,
+                              MatrixCompareType::absolute));
 }
 
 }  // namespace

@@ -34,6 +34,20 @@ drake_cc_library(
     ],
 )
 
+drake_cc_library(
+    name = "state_conversion",
+    srcs = [
+        "state_conversion.cc",
+    ],
+    hdrs = [
+        "state_conversion.h",
+    ],
+    deps = [
+        "//drake/common",
+        "//drake/math:geometric_transform",
+    ],
+)
+
 drake_cc_binary(
     name = "run_quadrotor_dynamics",
     srcs = ["run_quadrotor_dynamics.cc"],
@@ -114,6 +128,7 @@ drake_cc_googletest(
     data = [":models"],
     deps = [
         ":quadrotor_plant",
+        ":state_conversion",
         "//drake/common:eigen_matrix_compare",
         "//drake/common:find_resource",
         "//drake/multibody:rigid_body_tree_construction",
@@ -131,6 +146,7 @@ drake_cc_googletest(
     data = [":models"],
     deps = [
         ":quadrotor_plant",
+        ":state_conversion",
         "//drake/common:eigen_matrix_compare",
         "//drake/common:find_resource",
         "//drake/multibody:rigid_body_tree_construction",
