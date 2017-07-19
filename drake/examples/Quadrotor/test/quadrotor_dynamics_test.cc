@@ -227,11 +227,17 @@ class QuadrotorTest: public ::testing::Test {
 
     ge_context_ = ge_model_->CreateDefaultContext();
     rb_context_ = rb_model_->CreateDefaultContext();
+    ad_context_ = ad_model_->CreateDefaultContext();
+    qa_context_ = qa_model_->CreateDefaultContext();
 
     ge_simulator_ = std::make_unique<systems::Simulator<double>>(
         *ge_model_, std::move(ge_context_));
     rb_simulator_ = std::make_unique<systems::Simulator<double>>(
         *rb_model_, std::move(rb_context_));
+    ad_simulator_ = std::make_unique<systems::Simulator<double>>(
+        *ad_model_, std::move(ad_context_));
+    qa_simulator_ = std::make_unique<systems::Simulator<double>>(
+        *qa_model_, std::move(qa_context_));
 
     ge_derivatives_ = ge_model_->AllocateTimeDerivatives();
     rb_derivatives_ = rb_model_->AllocateTimeDerivatives();
@@ -242,9 +248,9 @@ class QuadrotorTest: public ::testing::Test {
   void SetUp() override {
     ge_model_->SetState(ge_simulator_->get_mutable_context(), x0_);
     rb_model_->SetState(rb_simulator_->get_mutable_context(), x0_);
+    ad_model_->SetState(ad_simulator_->get_mutable_context(), x0_);
+    qa_model_->SetState(qa_simulator_->get_mutable_context(), x0_);
 
-    ad_model_->SetState(ad_context_.get(), x0_);
-    qa_model_->SetState(qa_context_.get(), x0_);
     ge_simulator_->Initialize();
     rb_simulator_->Initialize();
     ad_simulator_->Initialize();
@@ -254,13 +260,13 @@ class QuadrotorTest: public ::testing::Test {
   void SetState(const VectorX<double> x0) {
     ge_model_->SetDefaults(ge_simulator_->get_mutable_context());
     rb_model_->SetDefaults(rb_simulator_->get_mutable_context());
-    ad_context_ = ad_model_->CreateDefaultContext();
-    qa_context_ = qa_model_->CreateDefaultContext();
+    ad_model_->SetDefaults(ad_simulator_->get_mutable_context());
+    qa_model_->SetDefaults(qa_simulator_->get_mutable_context());
 
     ge_model_->SetState(ge_simulator_->get_mutable_context(), x0);
     rb_model_->SetState(rb_simulator_->get_mutable_context(), x0);
-    ad_model_->SetState(ad_context_.get(), x0);
-    qa_model_->SetState(qa_context_.get(), x0);
+    ad_model_->SetState(ad_simulator_->get_mutable_context(), x0);
+    qa_model_->SetState(qa_simulator_->get_mutable_context(), x0);
   }
 
   void Simulate(const double t) {
@@ -341,11 +347,15 @@ class QuadrotorTest: public ::testing::Test {
 TEST_F(QuadrotorTest, derivatives) {
   VectorX<double> x0 = VectorX<double>::Ones(12);  // Set state to ones.
   SetState(x0);
-  ge_model_->CalcTimeDerivatives(ge_simulator_->get_context(), ge_derivatives_.get());
-  rb_model_->CalcTimeDerivatives(rb_simulator_->get_context(), rb_derivatives_.get());
+  ge_model_->CalcTimeDerivatives(ge_simulator_->get_context(),
+                                 ge_derivatives_.get());
+  rb_model_->CalcTimeDerivatives(rb_simulator_->get_context(),
+                                 rb_derivatives_.get());
+  ad_model_->CalcTimeDerivatives(ad_simulator_->get_context(),
+                                 ad_derivatives_.get());
+  qa_model_->CalcTimeDerivatives(qa_simulator_->get_context(),
+                                 qa_derivatives_.get());
 
-  ad_model_->CalcTimeDerivatives(*ad_context_, ad_derivatives_.get());
-  qa_model_->CalcTimeDerivatives(*qa_context_, qa_derivatives_.get());
   VectorX<double> my_derivative_vector = ge_derivatives_->CopyToVector();
   VectorX<double> rb_derivative_vector = rb_derivatives_->CopyToVector();
   VectorX<double> ad_derivative_vector = ad_derivatives_->CopyToVector();
