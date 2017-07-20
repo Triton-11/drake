@@ -142,8 +142,8 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   //std::cout << derivatives->CopyToVector() << std::endl;
 }
 template <>
-void RigidBodyPlantAutodiff<AutoDiffXd>::LinearizeAB(const Eigen::VectorXd& x0,
-    const Eigen::VectorXd& u0) {
+std::vector<Eigen::MatrixXd> RigidBodyPlantAutodiff<AutoDiffXd>::LinearizeAB(
+    const Eigen::VectorXd& x0, const Eigen::VectorXd& u0) {
   typedef AutoDiffXd T;
   //DRAKE_DEMAND(context.is_stateless() || context.has_only_continuous_state());
   // TODO(russt): handle the discrete time case
@@ -224,11 +224,16 @@ void RigidBodyPlantAutodiff<AutoDiffXd>::LinearizeAB(const Eigen::VectorXd& x0,
   Eigen::MatrixXd AB = math::autoDiffToGradientMatrix(autodiff_xdot_vec);
   Eigen::MatrixXd A = AB.leftCols(num_states);
   Eigen::MatrixXd B = AB.rightCols(num_inputs);
-  std::cout << "AB" << std::endl << AB << std::endl;
-  std::cout << "A" << std::endl << A << std::endl;
-  std::cout << "B" << std::endl << B << std::endl;
+  //std::cout << "AB" << std::endl << AB << std::endl;
+  std::cout << "LinearizeAB A" << std::endl << A << std::endl;
+  std::cout << "LinearizeAB B" << std::endl << B << std::endl;
   Eigen::MatrixXd C = Eigen::MatrixXd::Zero(num_outputs, num_states);
   Eigen::MatrixXd D = Eigen::MatrixXd::Zero(num_outputs, num_inputs);
+
+  std::vector<Eigen::MatrixXd> ABMatrices;
+  ABMatrices.push_back(A);
+  ABMatrices.push_back(B);
+  return ABMatrices;
   /*
   if (num_outputs > 0) {
     std::unique_ptr<SystemOutput<AutoDiffXd>> autodiff_y0 =

@@ -43,7 +43,8 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
 
   ~RigidBodyPlantAutodiff() override;
 
-  void LinearizeAB(const Eigen::VectorXd& x0, const Eigen::VectorXd& u0);
+  std::vector<Eigen::MatrixXd> LinearizeAB(
+      const Eigen::VectorXd& x0, const Eigen::VectorXd& u0);
 
   static void SetupInputMatrixB(Eigen::MatrixXd& B);
 
