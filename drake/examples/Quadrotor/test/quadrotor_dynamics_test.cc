@@ -77,9 +77,9 @@ class RigidBodyQuadrotor: public systems::Diagram<T> {
 
     auto tree = std::make_unique<RigidBodyTree<T>>();
 
-    drake::parsers::urdf::AddModelInstanceFromUrdfFile(
+    drake::parsers::urdf::AddModelInstanceFromUrdfFileWithRpyJointToWorld(
         FindResourceOrThrow("drake/examples/Quadrotor/quadrotor.urdf"),
-        multibody::joints::kRollPitchYaw, nullptr, tree.get());
+        tree.get());
 
     systems::DiagramBuilder<T> builder;
 
@@ -109,13 +109,11 @@ class RigidBodyAutoDiffRPYQuadrotor: public systems::Diagram<T> {
 
     auto tree = std::make_unique<RigidBodyTree<T>>();
 
-    drake::parsers::urdf::AddModelInstanceFromUrdfFile(
+    drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
         FindResourceOrThrow("drake/examples/Quadrotor/quadrotor.urdf"),
-        multibody::joints::kRollPitchYaw, nullptr, tree.get());
+        multibody::joints::kRollPitchYaw, tree.get());
 
     systems::RigidBodyPlantAutodiff<T>::SetupInputMatrixB(tree->B);
-
-    // TODO(robinsch): Define B matrix as part of RBPad
 
     systems::DiagramBuilder<T> builder;
 
@@ -158,13 +156,11 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
 
     auto tree = std::make_unique<RigidBodyTree<T>>();
 
-    drake::parsers::urdf::AddModelInstanceFromUrdfFile(
+    drake::parsers::urdf::AddModelInstanceFromUrdfFileToWorld(
         FindResourceOrThrow("drake/examples/Quadrotor/quadrotor.urdf"),
-        multibody::joints::kQuaternion, nullptr, tree.get());
+        multibody::joints::kQuaternion, tree.get());
 
     systems::RigidBodyPlantAutodiff<T>::SetupInputMatrixB(tree->B);
-
-    // TODO(robinsch): Define B matrix as part of RBPad
 
     systems::DiagramBuilder<T> builder;
 
