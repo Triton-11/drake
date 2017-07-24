@@ -9,51 +9,6 @@
 namespace drake {
 namespace examples {
 namespace quadrotor {
-/**
- * Converts a Quadrotor state from Euler angles to quaternion state
- * representation.
- * @param StateRPY A 12 x 1 column vector [translation; rpy_angles;
- * linear_velocity; angular_velocity].
- * @return A 13 x 1 column vector [translation; quaternion; angular_velocity;
- * linear_velocity].
- */
-//template <typename T>
-VectorX<double> ConvertRPYStateToQuaternion(const VectorX<double> StateRPY) {
-  DRAKE_DEMAND(StateRPY.size() == 12);
-  VectorX<double> StateQ = VectorX<double>::Zero(13);
-
-  Vector4<double> angles_q = math::rpy2quat(
-      static_cast<Vector3<double>>(StateRPY.segment(3, 3)));
-
-  StateQ << StateRPY.segment(0, 3),
-      angles_q,
-      StateRPY.segment(9, 3),
-      StateRPY.segment(6, 3);
-  return StateQ;
-}
-/**
- * Converts a Quadrotor state from quaternion representation to a Euler angles
- * state.
- * @param A 13 x 1 column vector [translation; quaternion; angular_velocity;
- * linear_velocity].
- * @return StateRPY A 12 x 1 column vector [translation; rpy_angles;
- * linear_velocity; angular_velocity].
-
- */
-//template <typename T>
-VectorX<double> ConvertQuaternionStateToRPY(const VectorX<double> StateQ) {
-  DRAKE_DEMAND(StateQ.size() == 13);
-  VectorX<double> StateRPY = VectorX<double>::Zero(12);
-
-  Vector3<double> angles_RPY = math::quat2rpy(
-      static_cast<Vector4<double>>(StateQ.segment(3, 4)));
-
-  StateRPY << StateQ.segment(0, 3),
-      angles_RPY,
-      StateQ.segment(10, 3),
-      StateQ.segment(7, 3);
-  return StateRPY;
-}
 
 void ConvertToPoseTwist(const Eigen::Ref<const VectorX<double>>& q,
                         const Eigen::Ref<const VectorX<double>>& v) {
@@ -99,40 +54,31 @@ void ConvertToPoseTwist(const Eigen::Ref<const VectorX<double>>& q,
   Vector6<double> V_WB;
   V_WB.head<3>() = X_WJ.linear() * V_JB.head<3>();
   V_WB.tail<3>() = X_WJ.linear() * V_JB.tail<3>();
-
-  std::cout << "X_WB" << std::endl << X_WB.matrix() << std::endl;
-  std::cout << "V_WB" << std::endl << V_WB << std::endl;
-  //EncodePose(X_WB, msg->pose)
-  //EncodeTwist(V_WB, msg->twist);
-
-  //EncodeValue(joint_name_to_q_index_, msg->joint_name, q,
-  //&(msg->joint_position));
-  //EncodeValue(joint_name_to_v_index_, msg->joint_name, v,
-  //&(msg->joint_velocity));
+  (void) X_WB;
 }
 
+/**
+ * Converts a Quadrotor state from Euler angles to quaternion state
+ * representation.
+ * @param q_rpy A 6 x 1 column vector [translation; rpy_angles].
+ * @param v_rpy A 6 x 1 column vector [linear_velocity; angular_velocity].
+ * @return A 13 x 1 column vector [translation; quaternion; angular_velocity;
+ * linear_velocity].
+ */
 VectorX<double> ConvertRpyToQuaternion(
-    const Eigen::Ref<const VectorX<double>>& q,
-    const Eigen::Ref<const VectorX<double>>& v) {
+    const Eigen::Ref<const VectorX<double>>& q_rpy,
+    const Eigen::Ref<const VectorX<double>>& v_rpy) {
+  DRAKE_DEMAND(q_rpy.size() == 6);
+  DRAKE_DEMAND(v_rpy.size() == 6);
 
-  DRAKE_DEMAND(q.size() == 6);
-  DRAKE_DEMAND(v.size() == 6);
-
-
-  // from rpy
-
+  // J is the root_joint frame.
   Isometry3<double> X_JB;
   Vector6<double> V_JB;
 
-  const int position_start = 0;
-  const int velocity_start = 0;
+  Vector3<double> rpy = q_rpy.segment<3>(3);
+  Vector3<double> rpydot = v_rpy.segment<3>(3);
 
-
-// RPY
-  Vector3<double> rpy = q.segment<3>(position_start + 3);
-  Vector3<double> rpydot = v.segment<3>(velocity_start + 3);
-
-  X_JB.translation() = q.segment<3>(position_start);
+  X_JB.translation() = q_rpy.segment<3>(0);
   X_JB.linear() = math::rpy2rotmat(rpy);
   X_JB.makeAffine();
 
@@ -142,28 +88,25 @@ VectorX<double> ConvertRpyToQuaternion(
 
   auto decomp = Eigen::ColPivHouseholderQR<Matrix3<double>>(phi);
   V_JB.head<3>() = decomp.solve(rpydot);
-  V_JB.tail<3>() = v.segment<3>(velocity_start);
-
+  V_JB.tail<3>() = v_rpy.segment<3>(0);
 
   VectorX<double> q_quat = VectorX<double>::Zero(7);
   VectorX<double> v_quat = VectorX<double>::Zero(6);
 
-// to Quaternion
-
 // Quaternion-parameterized floating joint.
 // Translation.
-  q_quat.segment<3>(position_start) = X_JB.translation();
+  q_quat.segment<3>(0) = X_JB.translation();
 
 // Orientation.
   auto quat = math::rotmat2quat(X_JB.linear());
-  q_quat.segment<4>(position_start + 3) = quat;
+  q_quat.segment<4>(0 + 3) = quat;
 
 // Transform V_WB to the floating base's body frame (V_WB_B).
 // Translational velocity.
-  v_quat.segment<3>(velocity_start + 3) =
+  v_quat.segment<3>(0 + 3) =
       X_JB.linear().transpose() * V_JB.tail<3>();
 // Rotational velocity.
-  v_quat.segment<3>(velocity_start) =
+  v_quat.segment<3>(0) =
       X_JB.linear().transpose() * V_JB.head<3>();
 
   VectorX<double> qvVector = VectorX<double>::Zero(13);
@@ -172,48 +115,48 @@ VectorX<double> ConvertRpyToQuaternion(
   return qvVector;
 }
 
+/**
+ * Converts a Quadrotor state from quaternion representation to a Euler angles
+ * state.
+ * @param q_quat A 7 x 1 column vector [translation; quaternion].
+ * @param v_quat A 6 x 1 column vector [angular_velocity; linear_velocity].
+ * @return qv_rpy A 12 x 1 column vector [translation; rpy_angles;
+ * linear_velocity; angular_velocity].
+
+ */
 VectorX<double> ConvertQuaternionToRpy(
-    const Eigen::Ref<const VectorX<double>>& q,
-    const Eigen::Ref<const VectorX<double>>& v) {
+    const Eigen::Ref<const VectorX<double>>& q_quat,
+    const Eigen::Ref<const VectorX<double>>& v_quat) {
+  DRAKE_DEMAND(q_quat.size() == 7);
+  DRAKE_DEMAND(v_quat.size() == 6);
 
-  DRAKE_DEMAND(q.size() == 7);
-  DRAKE_DEMAND(v.size() == 6);
-
-
-  // from quaternion
-
+  // J is the root_joint frame.
   Isometry3<double> X_JB;
   Vector6<double> V_JB;
 
-  const int position_start = 0;
-  const int velocity_start = 0;
-
-
   // Quaternion
-  X_JB.translation() = q.segment<3>(position_start);
-  X_JB.linear() = math::quat2rotmat(q.segment<4>(position_start + 3));
+  X_JB.translation() = q_quat.segment<3>(0);
+  X_JB.linear() = math::quat2rotmat(q_quat.segment<4>(3));
   X_JB.makeAffine();
 
   // v has velocity in body frame.
-  V_JB.head<3>() = X_JB.linear() * v.segment<3>(velocity_start);
-  V_JB.tail<3>() = X_JB.linear() * v.segment<3>(velocity_start + 3);
+  V_JB.head<3>() = X_JB.linear() * v_quat.segment<3>(0);
+  V_JB.tail<3>() = X_JB.linear() * v_quat.segment<3>(3);
 
   VectorX<double> q_rpy = VectorX<double>::Zero(6);
   VectorX<double> v_rpy = VectorX<double>::Zero(6);
 
-  // to RPY
-
   // RPY-parameterized floating joint.
   // Translation.
-  q_rpy.segment<3>(position_start) = X_JB.translation();
+  q_rpy.segment<3>(0) = X_JB.translation();
 
   // Orientation.
   auto rpy = math::rotmat2rpy(X_JB.linear());
-  q_rpy.segment<3>(position_start + 3) = rpy;
+  q_rpy.segment<3>(3) = rpy;
 
   // Translational velocity.
   auto translationdot = V_JB.tail<3>();
-  v_rpy.segment<3>(velocity_start) = translationdot;
+  v_rpy.segment<3>(0) = translationdot;
 
   // Rotational velocity.
   Eigen::Matrix<double, 3, 3> phi;
@@ -224,12 +167,12 @@ VectorX<double> ConvertQuaternionToRpy(
   angularvel2rpydotMatrix(rpy, phi, dphi, ddphi);
   auto angular_velocity_world = V_JB.head<3>();
   auto rpydot = (phi * angular_velocity_world).eval();
-  v_rpy.segment<3>(velocity_start + 3) = rpydot;
+  v_rpy.segment<3>(3) = rpydot;
 
-  VectorX<double> qvVector = VectorX<double>::Zero(12);
-  qvVector << q_rpy, v_rpy;
+  VectorX<double> qv_rpy = VectorX<double>::Zero(12);
+  qv_rpy << q_rpy, v_rpy;
 
-  return qvVector;
+  return qv_rpy;
 }
 
 }  // namespace quadrotor
