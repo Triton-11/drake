@@ -187,7 +187,9 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
   void SetState(systems::Context<T> *context, VectorX<T> x) const {
     systems::Context<T>& plant_context =
         this->GetMutableSubsystemContext(*plant_, context);
-    VectorX<T> x_quaternion = ConvertRPYStateToQuaternion(x);
+    //VectorX<T> x_quaternion = ConvertRPYStateToQuaternion(x);
+    VectorX<T> x_quaternion = ConvertRpyToQuaternion(x.segment(0, 6),
+                                                     x.segment(6, 6));
     plant_->set_state_vector(&plant_context, x_quaternion);
   }
 
@@ -284,7 +286,9 @@ class QuadrotorTest: public ::testing::Test {
     VectorX<double> qa_state_quaternion = qa_simulator_->get_context()
         .get_continuous_state_vector()
         .CopyToVector();
-    VectorX<double> qa_state = ConvertQuaternionStateToRPY(qa_state_quaternion);
+    VectorX<double> qa_state = ConvertQuaternionToRpy(
+        qa_state_quaternion.segment<7>(0),
+        qa_state_quaternion.segment<6>(7));
     double tol = 1e-10;
     EXPECT_TRUE(
         CompareMatrices(my_state, rb_state, tol, MatrixCompareType::absolute));
@@ -375,10 +379,12 @@ TEST_F(QuadrotorTest, drop_from_arbitrary_state) {
 TEST_F(QuadrotorTest, state_conversion) {
   VectorX<double> x0 = VectorX<double>::Ones(12);
   x0 << 1, 2, 3, 0.4, 0.5, 0.6, 1, 2, 3, 4, 5, 6;  // Some initial state.
-  const VectorX<double> x1 = x0;
-  VectorX<double> x0_quaternion = ConvertRPYStateToQuaternion(x0);
-  VectorX<double> x0_rpy = ConvertQuaternionStateToRPY(x0_quaternion);
-  EXPECT_TRUE(CompareMatrices(x1, x0_rpy,
+
+  auto qv_quat = ConvertRpyToQuaternion(x0.segment<6>(0), x0.segment<6>(6));
+  auto qv_rpy = ConvertQuaternionToRpy(qv_quat.segment<7>(0),
+                                       qv_quat.segment<6>(7));
+
+  EXPECT_TRUE(CompareMatrices(x0, qv_rpy,
                               1e-10 /* tolerance */,
                               MatrixCompareType::absolute));
 }

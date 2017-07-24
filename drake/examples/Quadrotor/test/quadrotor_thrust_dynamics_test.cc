@@ -160,7 +160,8 @@ class RigidBodyAutoDiffQuaternionQuadrotor: public systems::Diagram<T> {
   void SetState(systems::Context<T> *context, VectorX<T> x) const {
     systems::Context<T>& plant_context =
         this->GetMutableSubsystemContext(*plant_, context);
-    VectorX<T> x_quaternion = ConvertRPYStateToQuaternion(x);
+    VectorX<T> x_quaternion = ConvertRpyToQuaternion(x.segment(0, 6),
+                                                     x.segment(6, 6));
     plant_->set_state_vector(&plant_context, x_quaternion);
   }
 
@@ -248,7 +249,8 @@ class QuadrotorTest: public ::testing::Test {
     VectorX<double> qa_state_quaternion = qa_simulator_->get_context()
         .get_continuous_state_vector()
         .CopyToVector();
-    VectorX<double> qa_state = ConvertQuaternionStateToRPY(qa_state_quaternion);
+    VectorX<double> qa_state = ConvertQuaternionToRpy(
+        qa_state_quaternion.segment<7>(0), qa_state_quaternion.segment<6>(7));
     double tol = 1e-10;
     EXPECT_TRUE(
         CompareMatrices(my_state, ad_state, tol, MatrixCompareType::absolute));
