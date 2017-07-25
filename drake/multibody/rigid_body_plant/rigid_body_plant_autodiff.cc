@@ -13,8 +13,8 @@ namespace systems {
 
 
 template <typename T>
-RigidBodyPlantAutodiff<T>::RigidBodyPlantAutodiff(std::unique_ptr<const RigidBodyTree<T>> tree,
-                                  double timestep)
+RigidBodyPlantAutodiff<T>::RigidBodyPlantAutodiff(
+    std::unique_ptr<const RigidBodyTree<T>> tree, double timestep)
     : RigidBodyPlant<T>::RigidBodyPlant(move(tree)),
       tree_(this->get_rigid_body_tree()), timestep_(timestep) {
   this->DeclareInputPort(systems::kVectorValued, tree_.B.cols());
@@ -32,6 +32,23 @@ RigidBodyPlantAutodiff<T>::RigidBodyPlantAutodiff(std::unique_ptr<const RigidBod
 
 template <typename T>
 RigidBodyPlantAutodiff<T>::~RigidBodyPlantAutodiff() {}
+
+template <>
+RigidBodyPlantAutodiff<AutoDiffXd>*
+    RigidBodyPlantAutodiff<double>::DoToAutoDiffXd() const {
+  auto ad_tree = this->get_rigid_body_tree().ToAutoDiffXd();
+
+  return new RigidBodyPlantAutodiff<AutoDiffXd>(std::move(ad_tree));
+}
+
+template <>
+RigidBodyPlantAutodiff<AutoDiffXd>*
+    RigidBodyPlantAutodiff<AutoDiffXd>::DoToAutoDiffXd() const {
+  static_assert(true,
+                "DoToAutoDiffXd only supports AutoDiffXd for now");
+  auto tree = std::make_unique<RigidBodyTree<AutoDiffXd>>();
+  return new RigidBodyPlantAutodiff<AutoDiffXd>(std::move(tree));
+}
 
 template <typename T>
 void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
@@ -285,7 +302,9 @@ VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
   // J^T [ndof, 6]      -> 6x6 or 8x6
   // F   [ndof, 1]      -> 6x1 or 8x1
 
-  VectorX<T> F = J.transpose() * B_copy * u_thrusts;
+  VectorX<T> F = VectorX<T>::Zero(tree_.get_num_velocities());
+  // Only apply the force to the floating base body.
+  F.segment(0, 6) << J.transpose() * B_copy * u_thrusts;
   //std::cout << "F\n" << F << "\n";
 
   return F;

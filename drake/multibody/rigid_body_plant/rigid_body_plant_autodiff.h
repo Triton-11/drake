@@ -43,6 +43,8 @@ class RigidBodyPlantAutodiff : public RigidBodyPlant<T> {
 
   ~RigidBodyPlantAutodiff() override;
 
+  RigidBodyPlantAutodiff<AutoDiffXd>* DoToAutoDiffXd() const override;
+
   std::vector<Eigen::MatrixXd> LinearizeAB(
       const Eigen::VectorXd& x0, const Eigen::VectorXd& u0);
 
