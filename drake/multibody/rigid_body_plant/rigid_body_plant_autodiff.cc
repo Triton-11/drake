@@ -316,6 +316,7 @@ void RigidBodyPlantAutodiff<T>::SetupInputMatrixB(Eigen::MatrixXd& B) {
   const double kF = 1;
   const double L = 0.175;
 
+  // This mapping matrix is designed for a quadrotor with 4 rotors.
   B.resize(6, 4);
   B.fill(0.0);
   // Fill the actuator to body mapping matrix.
