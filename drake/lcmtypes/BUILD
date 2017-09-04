@@ -127,6 +127,15 @@ lcm_cc_library(
 )
 
 lcm_cc_library(
+    name = "quadrotor",
+    lcm_package = "drake",
+    lcm_srcs = [
+        "lcmt_quadrotor_ab_matrices.lcm",
+        "lcmt_quadrotor_state.lcm",
+    ],
+)
+
+lcm_cc_library(
     name = "qp_controller_input",
     lcm_package = "drake",
     lcm_srcs = ["lcmt_qp_controller_input.lcm"],
@@ -279,6 +288,7 @@ DRAKE_LCMTYPES = [
     ":plan_eval_debug_info",
     ":polynomial",
     ":polynomial_matrix",
+    ":quadrotor",
     ":qp_controller_input",
     ":qp_input",
     ":resolved_contact",
@@ -307,13 +317,13 @@ java_binary(
 
 install(
     name = "install",
+    guess_hdrs = "PACKAGE",
+    hdr_dest = "include/drake/lcmtypes",
+    rename = {"share/java/liblcmtypes_drake_java.jar": "lcmtypes_drake.jar"},
     targets = DRAKE_LCMTYPES + [
         ":lcmtypes_drake_java",
         ":lcmtypes_py",
     ],
-    hdr_dest = "include/drake/lcmtypes",
-    guess_hdrs = "PACKAGE",
-    rename = {"share/java/liblcmtypes_drake_java.jar": "lcmtypes_drake.jar"},
 )
 
 # === test/ ===

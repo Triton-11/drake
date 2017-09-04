@@ -1,0 +1,12 @@
+package drake;
+
+struct lcmt_quadrotor_ab_matrices {
+
+    int64_t timestamp;
+
+    int32_t n_inputs;
+    int32_t n_states;
+
+    float a_matrix[100];
+    float b_matrix[40];
+}

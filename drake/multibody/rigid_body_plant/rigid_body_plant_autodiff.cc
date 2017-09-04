@@ -135,7 +135,10 @@ void RigidBodyPlantAutodiff<T>::DoCalcTimeDerivatives(
   Eigen::LLT<MatrixX<T>> lltOfH(H); // compute the Cholesky decomposition of A
   // Check if H is a Hermitian, positive-definite matrix
   if (lltOfH.info() != Eigen::Success) {
-    // TODO(robinsch): Add proper error message when lltOfH fails.
+    // TODO(robinsch): Add proper error message when lltOfH fails, happend with rpy @ 90 deg pitch
+    // TODO(robinsch): use lldt if positive-semidefinite-matrix
+    //std::cout << "lldt result" << std::endl << H.ldlt().solve(right_hand_side) << std::endl;
+
     std::cout << "### FAIL ERROR of lltOfH" << std::endl;
     std::cout << "The H Matrix is:" << std::endl << H << std::endl;
   }
@@ -162,6 +165,8 @@ template <>
 std::vector<Eigen::MatrixXd> RigidBodyPlantAutodiff<AutoDiffXd>::LinearizeAB(
     const Eigen::VectorXd& x0, const Eigen::VectorXd& u0) {
   typedef AutoDiffXd T;
+  //auto t_start = std::chrono::high_resolution_clock::now();
+
   //DRAKE_DEMAND(context.is_stateless() || context.has_only_continuous_state());
   // TODO(russt): handle the discrete time case
 
@@ -182,7 +187,8 @@ std::vector<Eigen::MatrixXd> RigidBodyPlantAutodiff<AutoDiffXd>::LinearizeAB(
                     ? this->get_output_port(0).size()
                     : 0;
   const int num_states = this->get_num_states();
-  std::cout << "num_states: " << num_states << std::endl;
+  //std::cout << "num_states: " << num_states << std::endl;
+  //std::cout << "num_inputs: " << num_inputs << std::endl;
 
   // TODO(robinsch): check whether ToAutoDiffXd can be used for RBT/RBTAutodiff
   // this could be super helpful to still use URDF files to create RBT<double>
@@ -242,8 +248,8 @@ std::vector<Eigen::MatrixXd> RigidBodyPlantAutodiff<AutoDiffXd>::LinearizeAB(
   Eigen::MatrixXd A = AB.leftCols(num_states);
   Eigen::MatrixXd B = AB.rightCols(num_inputs);
   //std::cout << "AB" << std::endl << AB << std::endl;
-  std::cout << "LinearizeAB A" << std::endl << A << std::endl;
-  std::cout << "LinearizeAB B" << std::endl << B << std::endl;
+  //std::cout << "LinearizeAB A" << std::endl << A << std::endl;
+  //std::cout << "LinearizeAB B" << std::endl << B << std::endl;
   Eigen::MatrixXd C = Eigen::MatrixXd::Zero(num_outputs, num_states);
   Eigen::MatrixXd D = Eigen::MatrixXd::Zero(num_outputs, num_inputs);
 
@@ -286,14 +292,16 @@ VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
   //std::cout << "F = B * u" << std::endl << tree_.B * u_thrusts << std::endl;
 
   auto J = tree_.geometricJacobian(kinsol, 0, 1, 1, false);
-  auto J011t = tree_.geometricJacobian(kinsol, 0, 1, 1, true);
+  //auto J011t = tree_.geometricJacobian(kinsol, 0, 1, 1, true);
 
+  /*
   if (J.rows() != J011t.rows() || J.cols() != J011t.cols() ||
       !J.isApprox(J011t)) {
     //std::cout << "Not the same Jacobians\n";
     //std::cout << "J011f\n" << J << "\n";
     //std::cout << "J011t\n" << J011t << "\n";
   }
+   */
 
   // B_[nv, num_inputs] -> 6x4
   // u_[num_inputs, 1]  -> 4x1
@@ -312,18 +320,29 @@ VectorX<T> RigidBodyPlantAutodiff<T>::ThrustsToSpatialForce(
 
 template <typename T>
 void RigidBodyPlantAutodiff<T>::SetupInputMatrixB(Eigen::MatrixXd& B) {
+
+  // This mapping matrix is designed for a quadrotor with 4 rotors.
+  B.resize(6, 4);
+  /*
   const double kM = 0.0245;
   const double kF = 1;
   const double L = 0.175;
 
-  // This mapping matrix is designed for a quadrotor with 4 rotors.
-  B.resize(6, 4);
   B.fill(0.0);
-  // Fill the actuator to body mapping matrix.
+  // Fill the actuator to body mapping matrix for the single thrusts input.
   B.block(0, 0, 3, 4) << 0.0, L*kF, 0.0, -L*kF,
                          -L*kF, 0.0, L*kF, 0.0,
                          kM, -kM, kM, -kM;
   B.block(5, 0, 1, 4) << kF, kF, kF, kF;
+  std::cout << "Mapping matrix B\n" << B << std::endl;
+  */
+  B.fill(0.0);
+  // Fill the actuator to body mapping matrix for the collective thrust and
+  // torques input.
+  B.block(0, 1, 3, 3) << Eigen::MatrixXd::Identity(3, 3);
+  B.block(5, 0, 1, 1) << 1;
+  //std::cout << "Mapping matrix B\n" << B << std::endl;
+
 }
 
 // Explicitly instantiates on the most common scalar types.

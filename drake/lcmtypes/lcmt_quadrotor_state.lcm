@@ -1,0 +1,12 @@
+package drake;
+
+struct lcmt_quadrotor_state {
+
+    int64_t timestamp;
+
+    int32_t n_inputs;
+    int32_t n_states;
+
+    float input_vector[n_inputs];
+    float state_vector[n_states];
+}

@@ -42,6 +42,7 @@ drake_cc_library(
     hdrs = [
         "state_conversion.h",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         "//drake/common",
         "//drake/util",
@@ -64,6 +65,7 @@ drake_cc_binary(
         "//drake/multibody/parsers",
         "//drake/multibody/rigid_body_plant",
         "//drake/multibody/rigid_body_plant:drake_visualizer",
+        "//drake/multibody/rigid_body_plant:rigid_body_plant_autodiff",
         "//drake/systems/analysis:simulator",
         "//drake/systems/framework:diagram",
         "//drake/systems/primitives:constant_vector_source",
