@@ -7,6 +7,7 @@ namespace lqr {
 void QuadModelDrake::CalculateA(const Eigen::Ref<const Eigen::VectorXf>& q,
                                 const Eigen::Ref<const Eigen::VectorXf>& u)
 {
+  counter_ += 1;
   // Transformation matrix P to change from one state space representation to
   // another.
   // x_hat = P * x

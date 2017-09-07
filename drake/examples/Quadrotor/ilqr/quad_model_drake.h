@@ -46,6 +46,7 @@ class QuadModelDrake : public QuadModel {
  private:
   drake::systems::RigidBodyPlantAutodiff<drake::AutoDiffXd> *plant_{};
   std::unique_ptr<drake::systems::Diagram<drake::AutoDiffXd>> diagram_{};
+  int counter_{0};
 };
 
 } // namespace ilqr

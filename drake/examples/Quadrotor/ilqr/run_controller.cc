@@ -75,7 +75,7 @@ int DoMain() {
     std::cout << "A_drake" << std::endl << quad_drake->A_.format(CleanFmt)
               << std::endl;
 
-    //msg_ab_matrices.timestamp = 1103;
+    msg_ab_matrices.timestamp = message_count;
     msg_ab_matrices.n_states = 10;
     msg_ab_matrices.n_inputs = n_inputs;
     //std::cout << "publish after state received" << std::endl;
